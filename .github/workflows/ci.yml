@@ -40,7 +40,11 @@ jobs:
       # standing rule 1 exists to stop, and it was deleted rather than reconciled.
       # If this command needs a new assertion, it goes in verify-channels.mjs
       # where the other four live.
-      - name: Static channel checks (yaml · COPY sources · imports · bundle+sidecar · integration manifest)
+      # ⚠️ The step name deliberately does NOT enumerate the checks. It listed
+      # five while the script ran eight, and adding a ninth made the list wrong
+      # again — a label that must be kept in step with a list elsewhere is the
+      # hand-mirror shape in miniature. The script prints its own check names.
+      - name: Static channel checks (verify-channels.mjs — it names each check it ran)
         run: node scripts/verify-channels.mjs chickadee chickadee_dev
 
   yaml:

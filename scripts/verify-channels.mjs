@@ -29,6 +29,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { compareChannels, PER_CHANNEL_FILES, PROD_CHANNEL, DEV_CHANNEL } from './mirror-dev-channel.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const channels = process.argv.slice(2).length ? process.argv.slice(2) : ['chickadee', 'chickadee_dev'];
@@ -236,6 +237,35 @@ print("\\n".join(bad))`;
     detail = ok ? `${withManifest.join(', ')} (manifest present)` : `${pkgs.length} dir(s), no manifest.json`;
   }
   record(ch, 'vendored integration', ok, detail);
+}
+
+// 7. 🔴 THE DEV CHANNEL MIRRORS THE PROD CHANNEL.
+//
+//    Cross-channel, so it runs once rather than per channel — and only when both
+//    are in scope, because the property is meaningless about one directory. A
+//    single-channel invocation says so rather than reporting a property it did
+//    not check; that distinction is the whole lesson of the three "residue 0"
+//    reports that meant "zero the pattern could see".
+//
+//    The gap this closes, stated plainly: the generator writes ONE channel. The
+//    dev channel was a hand-run rsync of it, so the repo's second shipping
+//    artifact had no gate at all — every check above runs against each channel
+//    independently and would happily pass two channels that had drifted apart.
+//    "Both channels presumably, same generation" appears in three C5 blocker
+//    reports; nothing ever verified it.
+//
+//    The exemption list lives in mirror-dev-channel.mjs and is imported, not
+//    restated. That script both WRITES the mirror and defines what may differ,
+//    so this cannot check a rule the copier does not follow.
+if (channels.includes(PROD_CHANNEL) && channels.includes(DEV_CHANNEL)) {
+  const problems = compareChannels(repoRoot);
+  record('both channels', 'dev mirrors prod', !problems.length,
+    problems.length
+      ? `${problems.length}: ${problems.slice(0, 4).join(' · ')}`
+      : `identical except ${PER_CHANNEL_FILES.join(', ')}; slugs distinct, discovery agrees`);
+} else {
+  record('both channels', 'dev mirrors prod', true,
+    `⏭️ not checked — needs both ${PROD_CHANNEL} and ${DEV_CHANNEL} in scope`);
 }
 
 const w = Math.max(...results.map((r) => r.check.length));
