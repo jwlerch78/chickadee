@@ -1,0 +1,95 @@
+# jwlerch78/chickadee → .github/workflows/ci.yml
+#
+# The add-on repository: two channels (chickadee/, chickadee_dev/), each a full HA
+# add-on. This asks the one question the generator's legs cannot: would each
+# channel actually LOAD?
+#
+# It does NOT regenerate — the generator is private. Faithfulness stays upstream;
+# this is about whether what is committed here deploys.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  loadable:
+    name: Would each channel load?
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # PyYAML is what parses config.yaml. Installed explicitly rather than
+      # assumed: the checker REFUSES to run without a YAML parser (exit 2) rather
+      # than reporting a green channel on an unparsed config, so a runner image
+      # that quietly dropped it would fail loudly instead of silently passing.
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet pyyaml
+
+      # 🔴 B's script, already IN this repo — not a vendored copy of mine.
+      #
+      # The seam agreed three ways (B/T/S): CI INVOKES the statics rather than
+      # rebuilding them. An earlier draft of this workflow shipped a second
+      # implementation of "does this COPY source exist"; that is the hand-mirror
+      # standing rule 1 exists to stop, and it was deleted rather than reconciled.
+      # If this command needs a new assertion, it goes in verify-channels.mjs
+      # where the other four live.
+      - name: Static channel checks (yaml · COPY sources · imports · bundle+sidecar · integration manifest)
+        run: node scripts/verify-channels.mjs chickadee chickadee_dev
+
+  yaml:
+    name: Every YAML file parses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet pyyaml
+      # Wider than the channel configs the job above covers: a broken build.yaml
+      # or repository.yaml breaks the repo for every add-on in it at once.
+      - name: Parse all YAML
+        run: |
+          python3 - <<'PY'
+          import sys, pathlib, yaml
+          bad = []
+          for f in pathlib.Path('.').rglob('*.y*ml'):
+              if 'node_modules' in f.parts or '.git' in f.parts:
+                  continue
+              try:
+                  yaml.safe_load(f.read_text(encoding='utf-8'))
+              except yaml.YAMLError as e:
+                  m = getattr(e, 'problem_mark', None)
+                  where = f' (line {m.line+1}, column {m.column+1})' if m else ''
+                  bad.append(f'{f}: {getattr(e, "problem", e)}{where}')
+          if bad:
+              print('\n'.join(bad))
+              sys.exit(1)
+          print('all YAML parses')
+          PY
+
+  syntax:
+    name: Shipped JS parses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # A text transform produces text; only a parser says it is still code. The
+      # generator learned this the expensive way (a dropped line took a template
+      # literal's closing backtick with it, and residue/deny/drift were all green).
+      - name: node --check every shipped .js
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r f; do
+            node --check "$f" 2>/dev/null \
+              || node --input-type=module --check < "$f" 2>/dev/null \
+              || { echo "SYNTAX: $f"; fail=1; }
+          done < <(find chickadee chickadee_dev -name '*.js' -not -path '*/node_modules/*' 2>/dev/null)
+          exit $fail
