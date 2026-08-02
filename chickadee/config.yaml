@@ -1,0 +1,110 @@
+name: Chickadee
+version: "0.1.0"
+# 🔴 SLUG IS IMMUTABLE ONCE SHIPPED. A slug change is a different add-on with an
+# orphaned /data directory. `chickadee` here, `chickadee_dev` on the dev channel.
+#
+# The Chickadee Voice integration finds this add-on by globbing for a slug
+# CONTAINING "chickadee" (the installed slug carries an install-dependent prefix:
+# `local_chickadee` from /addons, `<repo-hash>_chickadee` from a repo channel).
+# Changing this word breaks that discovery silently — both sides stay healthy and
+# the integration simply never finds the add-on.
+slug: chickadee
+description: Voice & AI for Home Assistant — free, self-hosted, no account. Gives your voice assistant a real brain: ask anything, control your home in plain language, and hear natural voices back. Bring your own AI — a local model on your own hardware, or your own provider API key. Sets up the Chickadee Voice integration and a ready-to-use voice assistant for you.
+url: https://github.com/jwlerch78/chickadee
+arch:
+  - aarch64
+  - amd64
+  - armv7
+
+# Minimum HA version (any recent HA is fine).
+homeassistant: "2024.1.0"
+
+# Supervisor API access (SUPERVISOR_TOKEN) — publishes the bridge secret via
+# Supervisor discovery (the same credential channel the MQTT broker and Wyoming
+# add-ons use) and lists add-ons for engine detection. `discovery` declares the
+# service we publish. homeassistant_api lets the console's engine detection talk
+# to HA's WebSocket API (tts/engine/list & co — WS-only surface).
+hassio_api: true
+homeassistant_api: true
+# manager role: the console's "Restart Home Assistant" button (the integration
+# installer needs a core restart to activate; the banner offers it one-click).
+hassio_role: manager
+# 🔴 WIRE VALUE — must equal the integration's DOMAIN (chickadee_voice/const.py).
+discovery:
+  - chickadee_voice
+
+# BYO provider keys live in /data and carry secrets — keep them out of HA backups.
+backup_exclude:
+  - api-keys.json
+
+# Ingress panel: the Chickadee console, served by the same server on 8099. HA
+# proxies frontend traffic in; nothing is LAN-exposed (ports stays {}).
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:bird
+panel_title: Chickadee
+
+# data:rw                — private persistent storage (bridge secret master copy, config).
+# addon_config:rw        — the add-on's OWN config folder (/addon_configs/<slug>/ on the host).
+#                          NOT visible to HA Core on HAOS (verified 2026-07-25) — kept for the
+#                          future Supervisor-discovery handoff.
+# homeassistant_config:rw — the HA config dir; carries the bridge secret at
+#                          .chickadee/bridge_secret so the integration can read it.
+#                          🔴 WIRE VALUE — the integration probes this exact path first.
+#                          INTERIM: any add-on with a config mount can read it too —
+#                          replace with Supervisor discovery.
+map:
+  - data:rw
+  - addon_config:rw
+  - homeassistant_config:rw
+
+# The integration reaches us on the internal hassio network at
+# http://<hostname>:8099 — no host ports published.
+ports: {}
+
+# ⚠️ NO `cloud_env` OPTION, and its absence is deliberate rather than pending.
+# Chickadee has no account and no hosted service, so there is no environment to
+# select; an option that chose between two blank configs would be a control that
+# does nothing. Every engine below is either yours or Home Assistant's own.
+#
+# llm_url:     an OpenAI-compatible model server — either a base URL (we append
+#              /v1/chat/completions), e.g. http://homeassistant.local:11434 for
+#              Ollama, or a FULL chat-completions URL for providers whose compat
+#              path differs (Gemini: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions,
+#              OpenRouter: https://openrouter.ai/api/v1/chat/completions).
+#              llm_model: the model id to run. llm_api_key: bearer key — leave
+#              blank for local Ollama/llama.cpp.
+# stt_url: an OpenAI-compatible transcription server (we append
+#          /v1/audio/transcriptions unless the URL already ends with it) —
+#          whisper.cpp server, faster-whisper/speaches, or a provider endpoint.
+#          Leave blank to use Home Assistant's own speech-to-text.
+# tts_url: an OpenAI-compatible speech server (we append /v1/audio/speech) —
+#          Kokoro-FastAPI, the Piper shim, or a provider endpoint. Leave blank to
+#          use Home Assistant's own text-to-speech.
+# install_integration: the add-on installs/updates the bundled Chickadee Voice
+# integration into /config/custom_components (never touches a HACS/manual
+# install). Off = manage it yourself.
+options:
+  log_level: info
+  install_integration: true
+  llm_url: ""
+  llm_model: ""
+  llm_api_key: ""
+  stt_url: ""
+  stt_model: "whisper-1"
+  stt_api_key: ""
+  tts_url: ""
+  tts_voice: ""
+  tts_api_key: ""
+schema:
+  log_level: list(trace|debug|info|notice|warning|error|fatal)
+  install_integration: bool?
+  llm_url: str?
+  llm_model: str?
+  llm_api_key: password?
+  stt_url: str?
+  stt_model: str?
+  stt_api_key: password?
+  tts_url: str?
+  tts_voice: str?
+  tts_api_key: password?
