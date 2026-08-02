@@ -7,6 +7,12 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.3 — 2026-08-02
+
+The renew-now signal moves to an entity state change, because the event form was
+not deliverable to a non-admin Home Assistant user. Vendored integration 0.9.0.
+See the prod channel's changelog for the user-facing summary.
+
 ## 0.1.2 — 2026-08-02
 
 The household sharing switch now actually gates spending, and works without a

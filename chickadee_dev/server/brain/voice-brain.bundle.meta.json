@@ -1,6 +1,6 @@
 {
-  "sha": "66a5a96",
-  "shortSha": "66a5a96",
-  "source": "dashie-ha-console @ 66a5a96",
+  "sha": "cd6496a",
+  "shortSha": "cd6496a",
+  "source": "dashie-ha-console @ cd6496a",
   "builtFrom": "chickadee/server/brain/src/voice-conversation/orchestrator.ts"
 }

@@ -4,6 +4,23 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.3 — 2026-08-02
+
+**Turning sharing off now reaches your devices in seconds.**
+
+It always took effect — a satellite that could not renew its access fell back to
+Home Assistant's own voice engines on its own. But the signal telling devices to
+check *now* was being sent in a form Home Assistant would not deliver to a
+non-administrator user, which is what a wall tablet usually is. So the change
+quietly waited out the renewal window instead, up to half an hour.
+
+- **The signal is now something every user can receive**, so a flip applies
+  almost immediately rather than at the next renewal.
+- **Nothing else changed about how access works.** The signal only says "check
+  again"; the answer still comes from this box, the same way it always did.
+- If your Home Assistant is set up so the tablet's user cannot see this add-on's
+  entities, devices fall back to the slower path — they still get there.
+
 ## 0.1.2 — 2026-08-02
 
 **Your provider keys are now only spent when you say so.**
