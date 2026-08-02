@@ -21,7 +21,7 @@
 
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,6 +31,8 @@ const CHECK = process.argv.includes('--check');
 const brainDir = path.join(repoRoot, 'chickadee', 'server', 'brain');
 const entry = path.join(brainDir, 'src', 'voice-conversation', 'orchestrator.ts');
 const outfile = path.join(brainDir, 'voice-brain.bundle.js');
+// Required at boot by server/index.js — see the write below.
+const metafile = path.join(brainDir, 'voice-brain.bundle.meta.json');
 
 if (!existsSync(entry)) {
   console.error(`build-brain: no brain source at ${path.relative(repoRoot, entry)}.`);
@@ -86,6 +88,15 @@ if (CHECK) {
     console.error('   Run: node scripts/build-brain.mjs');
     process.exit(1);
   }
+  // The sidecar is required at boot, so --check must assert it too. Without this
+  // the check certified a brain that could not start — which is exactly what it
+  // did, green, while the container was exiting(1).
+  if (!existsSync(metafile)) {
+    console.error('❌ build-brain --check: the bundle is present but its meta.json sidecar is NOT.');
+    console.error('   server/index.js requires it at boot: the add-on installs, starts and dies.');
+    console.error('   Run: node scripts/build-brain.mjs');
+    process.exit(1);
+  }
   if (stripSha(fresh) !== stripSha(readFileSync(outfile, 'utf8'))) {
     console.error('❌ build-brain --check: the committed bundle is NOT what this source builds.');
     console.error('   The add-on would run a brain that disagrees with server/brain/src/.');
@@ -98,4 +109,21 @@ if (CHECK) {
 
 mkdirSync(path.dirname(outfile), { recursive: true });
 await esbuild.build({ ...buildOptions, outfile, logLevel: 'info' });
+
+// 🔴 THE SIDECAR IS NOT OPTIONAL. server/index.js does
+// `require('./brain/voice-brain.bundle.meta.json')` at boot, so a bundle without
+// its twin is a container that exits(1) with "Cannot find module" — the add-on
+// installs, starts, and dies.
+//
+// It shipped that way: the generator EXCLUDES both files (a built artifact is
+// not its to write) and this script wrote only one of them, so the sidecar was
+// excluded by one mechanism and never produced by the other. Neither was wrong
+// alone; the gap was between them.
+writeFileSync(metafile, JSON.stringify({
+  sha,
+  shortSha: sha.slice(0, 9),
+  builtFrom: 'chickadee/server/brain/src/voice-conversation/orchestrator.ts',
+}, null, 2) + '\n');
+
 console.log(`[build-brain] bundled Chickadee brain @ ${sha.slice(0, 9)} → ${path.relative(repoRoot, outfile)}`);
+console.log(`[build-brain] wrote sidecar ${path.relative(repoRoot, metafile)}`);

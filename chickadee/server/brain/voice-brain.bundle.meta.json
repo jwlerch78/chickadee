@@ -1,0 +1,5 @@
+{
+  "sha": "8f9cc0115d403eb6aab1093eb3b1b40de5a6dd12",
+  "shortSha": "8f9cc0115",
+  "builtFrom": "chickadee/server/brain/src/voice-conversation/orchestrator.ts"
+}
