@@ -21,7 +21,8 @@
 
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -51,7 +52,45 @@ if (!existsSync(ESBUILD_HOST)) {
 }
 const esbuild = createRequire(ESBUILD_HOST)('esbuild');
 
-const sha = execSync('git rev-parse HEAD', { cwd: repoRoot }).toString().trim();
+// 🔴 THE STAMP IDENTIFIES THE SOURCE, NOT THE BUILD MOMENT.
+//
+// It used to be `git rev-parse HEAD` of THIS repo, which meant every rebuild
+// after any commit rewrote the bundle and its sidecar with a new SHA — with zero
+// code change. The tree was permanently dirty, and a genuine bundle change was
+// indistinguishable from the churn.
+//
+// That is byte-for-byte the kiosk-overlay defect fixed on 2026-07-31, reborn
+// here because I reached for the same convenient value. A build stamp answers
+// "which SOURCE is this built from", and HEAD-at-build-time answers "when did I
+// press the button" — which is not a property of the artifact at all.
+//
+// The channel's GENERATED stamp is the right answer: it names the upstream ref
+// this whole tree came from, and it does not move unless the source does. So an
+// identical source rebuilds to identical bytes, and a dirty bundle once again
+// means a REAL change.
+function sourceProvenance() {
+  const gen = path.join(repoRoot, 'chickadee', 'GENERATED');
+  if (existsSync(gen)) {
+    const text = readFileSync(gen, 'utf8').trim();
+    const m = text.match(/^Generated from (\S+) @ ([0-9a-f]{7,40})/);
+    if (m) return { source: `${m[1]} @ ${m[2]}`, sha: m[2] };
+  }
+  // No usable stamp: hash the brain source itself. Deterministic, so it still
+  // does not churn — and it degrades to something true rather than to HEAD,
+  // which is the value that caused the problem.
+  const files = [];
+  const walkSrc = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walkSrc(f); else if (/\.(ts|js)$/.test(e.name)) files.push(f);
+    }
+  };
+  try { walkSrc(path.join(brainDir, 'src')); } catch { /* handled below */ }
+  const h = createHash('sha256');
+  for (const f of files.sort()) h.update(readFileSync(f));
+  return { source: 'content-hash (no GENERATED stamp)', sha: h.digest('hex').slice(0, 12) };
+}
+const { source: SOURCE_DESC, sha } = sourceProvenance();
 
 const banner = `/* ============================================================
    AUTO-GENERATED — DO NOT EDIT BY HAND
@@ -60,7 +99,7 @@ const banner = `/* ============================================================
    Built from this channel's OWN server/brain/src/ — not copied, and not
    text-substituted from another brand's bundle. See scripts/build-brain.mjs
    for why that distinction matters.
-   Source git SHA: ${sha}
+   Built from: ${SOURCE_DESC}
    Regenerate:  node scripts/build-brain.mjs
    ============================================================ */`;
 
@@ -77,8 +116,11 @@ const buildOptions = {
 // The SHA moves on every commit, including ones that never touch the brain, so
 // --check normalizes it out and compares the BODY. A gate that cries wolf weekly
 // gets disabled, which is worse than no gate.
-const stripSha = (s) => s.replace(/Source git SHA: [0-9a-f]{40}/g, 'Source git SHA: <sha>')
-  .replace(/BRAIN_SOURCE_SHA = "[0-9a-f]{40}"/g, 'BRAIN_SOURCE_SHA = "<sha>"');
+// Kept, but it should now be a NO-OP in practice: the stamp no longer moves
+// unless the source does. If this normalisation ever starts mattering again,
+// something has reintroduced a build-moment value.
+const stripSha = (s) => s.replace(/Built from: [^\n]*/g, 'Built from: <source>')
+  .replace(/BRAIN_SOURCE_SHA = "[0-9a-f]+"/g, 'BRAIN_SOURCE_SHA = "<sha>"');
 
 if (CHECK) {
   const built = await esbuild.build({ ...buildOptions, write: false, logLevel: 'silent' });
@@ -119,9 +161,14 @@ await esbuild.build({ ...buildOptions, outfile, logLevel: 'info' });
 // not its to write) and this script wrote only one of them, so the sidecar was
 // excluded by one mechanism and never produced by the other. Neither was wrong
 // alone; the gap was between them.
+// Field NAMES unchanged: server/index.js reads `shortSha` for its startup log,
+// and renaming it would be a second break to fix a first. Only the VALUE moves —
+// from "this repo's HEAD when I built" to "the source this tree came from",
+// which is what a reader of a build stamp actually wants to know.
 writeFileSync(metafile, JSON.stringify({
   sha,
   shortSha: sha.slice(0, 9),
+  source: SOURCE_DESC,
   builtFrom: 'chickadee/server/brain/src/voice-conversation/orchestrator.ts',
 }, null, 2) + '\n');
 
