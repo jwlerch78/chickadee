@@ -3,7 +3,7 @@
 //
 //   ensureSidebarPanel(): flip our own "Show in sidebar" on (ingress_panel) so
 //     the Chickadee panel appears without the user finding the toggle.
-//   isIntegrationLoaded(): does the running HA have the dashie_voice component
+//   isIntegrationLoaded(): does the running HA have the chickadee_voice component
 //     loaded? Drives the "restart to activate" banner — the installer's status
 //     alone goes stale (the add-on doesn't restart when core does).
 //   restartCore(): POST /core/restart (needs hassio_role: manager) — behind
@@ -65,7 +65,7 @@ async function getSelfSlug() {
 
 let _loadedCache = { at: 0, val: null };
 
-/** Is the dashie_voice integration loaded in the RUNNING core? 15s cache; null = unknown. */
+/** Is the chickadee_voice integration loaded in the RUNNING core? 15s cache; null = unknown. */
 async function isIntegrationLoaded() {
     if (!TOKEN) return null;
     const now = Date.now();
@@ -75,7 +75,7 @@ async function isIntegrationLoaded() {
             .then(r => (r.ok ? r.json() : null));
         const comps = Array.isArray(cfg?.components) ? cfg.components : null;
         if (!comps) return null;
-        const val = comps.some(c => c === 'dashie_voice' || String(c).startsWith('dashie_voice.'));
+        const val = comps.some(c => c === 'chickadee_voice' || String(c).startsWith('chickadee_voice.'));
         _loadedCache = { at: now, val };
         return val;
     } catch (e) {
@@ -86,7 +86,7 @@ async function isIntegrationLoaded() {
 let _flowCache = { at: 0, val: null };
 
 /**
- * flow_id of an in-progress `dashie_voice` config flow, or null. This is the
+ * flow_id of an in-progress `chickadee_voice` config flow, or null. This is the
  * discovery "Configure" card, parked at hassio_confirm after a core restart —
  * core creates it but the user must complete it for the integration to load.
  * Listing in-progress flows is WS-only (REST 405s), so this uses the core WS.
@@ -99,7 +99,7 @@ async function getPendingIntegrationFlowId() {
     try {
         if (haRegistry.isAvailable()) {
             const flows = await haRegistry.listConfigFlowsInProgress();
-            const f = Array.isArray(flows) ? flows.find(x => x && x.handler === 'dashie_voice') : null;
+            const f = Array.isArray(flows) ? flows.find(x => x && x.handler === 'chickadee_voice') : null;
             val = f ? f.flow_id : null;
         }
     } catch (e) {

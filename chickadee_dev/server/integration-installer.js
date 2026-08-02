@@ -27,9 +27,49 @@ const { readOptions } = require('./options');
 // homeassistant_config:rw mounts the HA config dir here (same mount
 // bridge-auth.js provisions the secret through).
 const HA_CONFIG_ROOT = '/homeassistant';
-const TARGET_DIR = path.join(HA_CONFIG_ROOT, 'custom_components', 'dashie_voice');
+
+// 🔴 DERIVED, not hard-coded — the vendored tree names itself.
+//
+// This was a literal `chickadee_voice` on both paths. A branded build vendors
+// `chickadee_voice` (correctly — the integration has its own generated repo), so
+// the installer looked at a directory that does not exist, found nothing, and
+// DROP-warned "sync-integration.sh not run?" — which is a red herring: the tree
+// IS in the image, with a full manifest. The result was a fresh box with NO
+// VOICE INTEGRATION AT ALL.
+//
+// Two copies of a name that must agree is the seam rule's own example, so the
+// fix is to stop having two: read the vendored package name. There is exactly
+// one, it is placed there by scripts/sync-integration.sh, and its name IS the
+// integration's domain — which is also what it must be called inside HA's
+// custom_components. One source, no substitution row, nothing to forget.
+const VENDOR_ROOT = path.resolve(__dirname, '..', 'integration', 'custom_components');
+
+function readVendoredDomain() {
+    let entries = [];
+    try {
+        entries = fs.readdirSync(VENDOR_ROOT, { withFileTypes: true })
+            .filter((e) => e.isDirectory() && fs.existsSync(path.join(VENDOR_ROOT, e.name, 'manifest.json')))
+            .map((e) => e.name);
+    } catch { /* reported below */ }
+    if (entries.length === 1) return entries[0];
+    // Loud, and specific about which of the two failures this is — "not vendored"
+    // and "vendored twice" want opposite fixes.
+    console.warn(
+        entries.length === 0
+            ? `DROP: no vendored integration under ${VENDOR_ROOT} (expected exactly one package with a manifest.json). ` +
+              `The image was built without scripts/sync-integration.sh having run.`
+            : `DROP: ${entries.length} vendored integrations under ${VENDOR_ROOT} (${entries.join(', ')}). ` +
+              `Expected exactly one — a second copy means two integrations would fight over the same install.`,
+    );
+    return null;
+}
+
+const VENDORED_DOMAIN = readVendoredDomain();
+const TARGET_DIR = VENDORED_DOMAIN
+    ? path.join(HA_CONFIG_ROOT, 'custom_components', VENDORED_DOMAIN)
+    : null;
 // Vendored by scripts/sync-integration.sh, shipped in the image (Dockerfile).
-const BUNDLED_DIR = path.resolve(__dirname, '..', 'integration', 'custom_components', 'dashie_voice');
+const BUNDLED_DIR = VENDORED_DOMAIN ? path.join(VENDOR_ROOT, VENDORED_DOMAIN) : null;
 const MARKER = '.installed_by_dashie_ha_addon';
 
 function readManifestVersion(dir) {
@@ -98,7 +138,7 @@ async function notifyRestart(message) {
             body: JSON.stringify({
                 title: 'Chickadee Voice',
                 message,
-                notification_id: 'dashie_voice_integration_install',
+                notification_id: 'chickadee_voice_integration_install',
             }),
         });
         if (!resp.ok) console.warn(`[installer] notification HTTP ${resp.status}`);
@@ -133,11 +173,15 @@ async function ensureIntegration() {
             console.log('[installer] install_integration is off — skipping');
             return 'disabled';
         }
+        // readVendoredDomain already DROP-warned with the specific reason; bail
+        // before any path.join(null) turns a clear diagnosis into a TypeError.
+        if (!VENDORED_DOMAIN) return 'error';
         const bundled = readManifestVersion(BUNDLED_DIR);
         if (!bundled) {
-            console.warn('[installer] DROP: no bundled integration in this image (sync-integration.sh not run?)');
+            console.warn(`[installer] DROP: vendored ${VENDORED_DOMAIN} has no readable manifest.json at ${BUNDLED_DIR}`);
             return 'error';
         }
+        console.log(`[installer] vendored integration domain: ${VENDORED_DOMAIN}`);
         const bundledHash = hashDir(BUNDLED_DIR);
         if (!fs.existsSync(path.join(HA_CONFIG_ROOT, 'custom_components')) &&
             !fs.existsSync(HA_CONFIG_ROOT)) {
@@ -190,13 +234,13 @@ function getInstalledHash() {
 }
 
 /** Content-hash the LOADED integration stamped at its last setup (the integration
- *  writes it to <config>/.dashie_voice/loaded_hash), or null. When this differs from
+ *  writes it to <config>/.chickadee/loaded_hash), or null. When this differs from
  *  getInstalledHash() the add-on has re-copied newer files that a core restart
  *  hasn't loaded yet → the console nudges "restart to apply". Self-clears: the
  *  integration rewrites it on its next setup (i.e. after that restart). */
 function getLoadedHash() {
     try {
-        const txt = fs.readFileSync(path.join(HA_CONFIG_ROOT, '.dashie_voice', 'loaded_hash'), 'utf8');
+        const txt = fs.readFileSync(path.join(HA_CONFIG_ROOT, '.chickadee', 'loaded_hash'), 'utf8');
         const m = txt.match(/([0-9a-f]{64})/i);
         return m ? m[1] : null;
     } catch (e) {

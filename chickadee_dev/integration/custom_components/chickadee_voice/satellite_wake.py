@@ -39,6 +39,7 @@ _BUNDLE_DIR = Path(__file__).parent / "wake_models"
 # Only OUR custom words need deployment; community words (mww_okay_nabu, …) are
 # already in the official repo and are referenced by name, not deployed.
 WAKE_MODELS: dict[str, tuple[str, str, str]] = {
+    "hey_dashie": ("hey_dashie.json", "hey_dashie.tflite", "Hey Dashie"),
     "chickadee": ("chickadee.json", "chickadee.tflite", "Chickadee"),
 }
 

@@ -119,6 +119,35 @@ print("\\n".join(bad))`;
     existsSync(bundle) ? (existsSync(meta) ? 'both present' : '🔴 sidecar MISSING — the add-on boots and exits(1)')
                        : '🔴 bundle missing');
 
+  // 5b. 🔴 THE THREE NAMES THAT MUST AGREE. The add-on's discovery SERVICE, the
+  //     `discovery:` list in config.yaml, and the vendored integration's own
+  //     domain are one value in three places. Any disagreement is silent-ish and
+  //     nasty: Supervisor 403s an add-on publishing a service its config does not
+  //     declare (repeating every worker cycle), and the installer would target a
+  //     directory HA never loads.
+  //
+  //     This is the producer/recogniser shape of lint:wire-values, applied where
+  //     the add-on and its integration meet.
+  {
+    const disc = path.join(dir, 'server/discovery.js');
+    const cfg = path.join(dir, 'config.yaml');
+    const vend = path.join(dir, 'integration/custom_components');
+    let svc = null, declared = [], domain = null;
+    if (existsSync(disc)) svc = (readFileSync(disc, 'utf8').match(/SERVICE\s*=\s*['"]([^'"]+)['"]/) || [])[1] ?? null;
+    if (existsSync(cfg)) {
+      const m = readFileSync(cfg, 'utf8').match(/^discovery:\s*\n((?:\s*-\s*\S+\n)+)/m);
+      if (m) declared = m[1].split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+    }
+    if (existsSync(vend)) {
+      const pkgs = readdirSync(vend).filter((n) => existsSync(path.join(vend, n, 'manifest.json')));
+      if (pkgs.length === 1) domain = pkgs[0];
+    }
+    const agree = svc && domain && declared.includes(svc) && svc === domain;
+    record(ch, 'discovery names agree', !!agree,
+      agree ? `${svc} (SERVICE = config.yaml discovery = vendored domain)`
+            : `SERVICE=${svc ?? '?'} · config.yaml declares [${declared.join(', ') || '—'}] · vendored domain=${domain ?? '?'}`);
+  }
+
   // 5. The vendored integration carries a manifest — an empty dir would satisfy
   //    the COPY check while shipping no integration at all.
   const vendored = path.join(dir, 'integration/custom_components');

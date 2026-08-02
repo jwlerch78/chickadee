@@ -47,6 +47,16 @@ class AddonUnavailable(Exception):
     """The Chickadee add-on can't be reached (not installed, stopped, or no bridge secret)."""
 
 
+class SharingDisabled(AddonUnavailable):
+    """Add-on reachable + signed in, but household cloud sharing is off (HTTP 403).
+
+    Lives here, with the transport that produces it, rather than in the account
+    lane that mostly raises it: `addon_voice.converse_local` also turns a 403
+    into this, and an exception type shared by two lanes belongs under both. A
+    build with no account never sees a 403 and so never raises it.
+    """
+
+
 _secret_cache: str | None = None
 
 

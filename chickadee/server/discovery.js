@@ -3,9 +3,9 @@
 //
 // The PROPER credential channel (the same one the MQTT broker/Wyoming add-ons
 // use): POST http://supervisor/discovery {service, config} with SUPERVISOR_TOKEN;
-// the Supervisor delivers it to HA Core, which fires the dashie_voice integration's
+// the Supervisor delivers it to HA Core, which fires the chickadee_voice integration's
 // async_step_hassio with the config. Replaces the interim world-readable
-// <ha-config>/.dashie_voice/bridge_secret file as the primary channel (the file
+// <ha-config>/.chickadee/bridge_secret file as the primary channel (the file
 // copies remain for older integrations — CONTRACTS.md).
 
 'use strict';
@@ -13,7 +13,7 @@
 const os = require('os');
 
 const SUPERVISOR = 'http://supervisor';
-const SERVICE = 'dashie_voice';
+const SERVICE = 'chickadee_voice';
 const RETRY_MS = [2000, 10000, 30000];
 
 async function publish(secret, log = console.log) {

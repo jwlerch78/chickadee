@@ -5,7 +5,7 @@
    Built from this channel's OWN server/brain/src/ — not copied, and not
    text-substituted from another brand's bundle. See scripts/build-brain.mjs
    for why that distinction matters.
-   Source git SHA: 8f9cc0115d403eb6aab1093eb3b1b40de5a6dd12
+   Source git SHA: def7ec42b71ad4408fbe47b0d428af4a55724806
    Regenerate:  node scripts/build-brain.mjs
    ============================================================ */
 var __defProp = Object.defineProperty;
@@ -4451,4 +4451,4 @@ function toolMeta(parsed, route, caps) {
   templateCanAnswer,
   wantsGameDetail
 });
-module.exports.BRAIN_SOURCE_SHA = "8f9cc0115d403eb6aab1093eb3b1b40de5a6dd12";
+module.exports.BRAIN_SOURCE_SHA = "def7ec42b71ad4408fbe47b0d428af4a55724806";

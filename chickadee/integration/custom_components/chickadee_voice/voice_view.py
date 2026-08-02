@@ -46,47 +46,21 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .brain_target import brain_target, cloud_base
-from .account_bridge import (
-    AddonUnavailable,
-    SharingDisabled,
-    authorize_device,
+from .brain_target import cloud_base, default_brain_route
+from .addon_bridge import AddonUnavailable, SharingDisabled
+from .addon_voice import (
     converse_local,
-    get_account_credential,
-    get_sharing_status,
+    get_addon_availability,
     get_voice_config,
     mint_live_token,
+    request_lease,
 )
+# ⚠️ THE ACCOUNT LANE — this one import is the whole of it in this file, and a
+# build with no account drops this line together with the views below that use it.
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _actor(request: web.Request) -> str:
-    """Describe the HA user behind a request, for attribution in the log.
-
-    These views are `requires_auth = True` and nothing more, which in HA means
-    ANY user on the box — including a non-admin — can use household voice and
-    (while sharing is on) enroll a device into the household cloud account.
-
-    That is deliberate, and the alternative was considered and rejected: a
-    dedicated NON-admin HA user is the idiomatic way to run a kiosk/wall
-    tablet, and those tokens are exactly what KioskSessionProvisioner sends to
-    /account/authorize — so requiring `is_admin` would break enrollment for the
-    households following the recommended practice, to stop a household member
-    from using a household feature.
-
-    The real consent switch is the account's `voice.householdSharing`, which is
-    off by default and fails closed. What was missing is attribution: spending
-    and enrollment were logged without saying WHO, so an owner reviewing the
-    log couldn't tell. This makes every such event name its actor.
-
-    Documented for users in the add-on's DOCS.md ("Who on your HA box can use
-    the household account").
-    """
-    user = request.get("hass_user")
-    if user is None:
-        return "unknown"
-    return f"{user.name or user.id} ({'admin' if user.is_admin else 'non-admin'})"
 
 # WHERE the brain is lives in brain_target.py — the one module that knows, and
 # the seam a second brand differs at. Don't re-derive an endpoint here.
@@ -129,13 +103,6 @@ def build_brain_payload(body: dict) -> tuple[dict, str, str | None]:
     return payload, endpoint_id, route
 
 
-async def call_brain(hass: HomeAssistant, payload: dict, cred: str | None = None) -> tuple[dict, int]:
-    """POST a prepared VoiceRequest to the brain, wherever this build's brain is."""
-    url, headers = await brain_target(hass, cred=cred)
-    session = async_get_clientsession(hass)
-    async with session.post(url, json=payload, headers=headers) as resp:
-        turn = await resp.json(content_type=None)
-        return turn, (200 if resp.status < 400 else resp.status)
 
 
 class ChickadeeVoiceConverseView(HomeAssistantView):
@@ -162,14 +129,40 @@ class ChickadeeVoiceConverseView(HomeAssistantView):
 
         # Authoritative account route stamped on every response so a device with
         # a stale cached route self-corrects next turn (brain-route strand fix).
-        authoritative_route = (await get_voice_config(hass)).get("route", "cloud")
-        # Both header names carry the same value: X-Chickadee-Brain-Route is
+        # An unreadable config yields no route at all rather than a guessed
+        # "cloud" — this build's own default then applies (brain_target).
+        authoritative_route = (await get_voice_config(hass)).get("route") or default_brain_route()
+        # Both header names carry the same value. The first is this integration's
+        # canonical, brand-parameterised name; the second is a WIRE VALUE that is
+        # the same in every brand because the app reads that exact literal and
+        # does not key it by edition.
+        #
+        # ⚠️ Do not "clean up" the second as legacy. A branded build once dropped
+        # it and the brain-route keystone went inert: the response then carries no
+        # header the device recognises, so a device holding a cached route strands
+        # permanently, with both ends healthy. Same class as the extra_urls drop
+        # (CONTRACTS #63) — a compat name is a contract, not clutter.
         route_header = {
             "X-Chickadee-Brain-Route": authoritative_route,
+            "X-Dashie-Brain-Route": authoritative_route,
         }
 
         if route is None:
             route = authoritative_route
+        # A caller can still ASK for the cloud explicitly. Honour that only if
+        # this build has a cloud — otherwise the request would fall through to a
+        # lane that does not exist here. Coerce to the brain this build actually
+        # has, and say so, rather than failing at the far end of a dead path.
+        #
+        # Brand-neutral on purpose: in a build with a cloud this never fires, and
+        # in a build without one it makes the cloud tail below UNREACHABLE — which
+        # is what lets a no-account build drop that tail without changing any
+        # behaviour, instead of merely hoping nothing reaches it.
+        if route == "cloud" and not cloud_base():
+            _LOGGER.warning(
+                "DROP: caller asked for brain route 'cloud'; this build has no cloud brain — using the add-on"
+            )
+            route = "local"
         if route == "local":
             try:
                 turn, status = await converse_local(hass, payload)
@@ -179,51 +172,11 @@ class ChickadeeVoiceConverseView(HomeAssistantView):
                 return web.json_response({"ok": False, "error": f"addon_unavailable: {err}"}, status=503, headers=route_header)
             return web.json_response(turn, status=(200 if status < 400 else status), headers=route_header)
 
-        try:
-            cred = await get_account_credential(hass)
-        except SharingDisabled:
-            return web.json_response({"ok": False, "error": "sharing_disabled"}, status=403, headers=route_header)
-        except AddonUnavailable as err:
-            return web.json_response({"ok": False, "error": f"addon_unavailable: {err}"}, status=503, headers=route_header)
-
-        brain_url, brain_headers = await brain_target(hass, cred=cred)
-        session = async_get_clientsession(hass)
-
-        # COMPAT: NDJSON progress stream only when the client asked (`body.stream`).
-        if not body.get("stream"):
-            try:
-                turn, status = await call_brain(hass, payload, cred=cred)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("voice converse → brain failed: %s", err)
-                return web.json_response({"ok": False, "error": f"brain_call_failed: {err}"}, status=502, headers=route_header)
-            return web.json_response(turn, status=status, headers=route_header)
-
-        payload["stream"] = True
-        downstream = web.StreamResponse(
-            headers={"Content-Type": "application/x-ndjson", "Cache-Control": "no-cache", **route_header}
+        _LOGGER.warning("DROP: converse reached the cloud lane in a build that has no cloud brain")
+        return web.json_response(
+            {"ok": False, "error": "no_cloud_brain"}, status=501, headers=route_header
         )
-        prepared = False
-        try:
-            async with session.post(brain_url, json=payload, headers=brain_headers) as resp:
-                if resp.status >= 400:
-                    err_body = await resp.text()
-                    return web.Response(status=resp.status, text=err_body, content_type="application/json", headers=route_header)
-                await downstream.prepare(request)
-                prepared = True
-                async for raw in resp.content:  # NDJSON is line-delimited
-                    if not raw.strip():
-                        continue
-                    await downstream.write(raw if raw.endswith(b"\n") else raw + b"\n")
-            await downstream.write_eof()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("voice converse → brain stream failed: %s", err)
-            if not prepared:
-                return web.json_response({"ok": False, "error": f"brain_call_failed: {err}"}, status=502)
-            try:
-                await downstream.write_eof()
-            except Exception:  # noqa: BLE001
-                pass
-        return downstream
+
 
 
 class ChickadeeVoiceStatusView(HomeAssistantView):
@@ -236,7 +189,15 @@ class ChickadeeVoiceStatusView(HomeAssistantView):
 
     async def get(self, request: web.Request) -> web.Response:
         hass: HomeAssistant = request.app["hass"]
-        status = await get_sharing_status(hass)
+        status: dict = {}
+        # ⚠️ ACCOUNT LANE — this ONE line is the whole of it here. It fully
+        # answers the availability question when present (signed in? sharing on?
+        # which email?), which is why the base probe below is a FALLBACK and not
+        # a first step: a build with an account must not pay for both.
+        if not status:
+            # No account lane in this build: "available" means what it can mean
+            # here — the add-on is reachable.
+            status = await get_addon_availability(hass)
         agent_mode = ""
         retrieve_pictures = None
         brain_route = ""
@@ -313,9 +274,45 @@ class ChickadeeVoiceLiveTokenView(HomeAssistantView):
         return web.json_response(result, status=(200 if status < 400 else status))
 
 
+class ChickadeeVoiceLeaseView(HomeAssistantView):
+    """Capability lease — issue and renew (CONTRACTS #65).
+
+    A satellite cannot reach the add-on directly (that needs the bridge secret,
+    which a satellite must never hold), so the lease rides the authenticated LAN
+    path that already exists: this gateway. We proxy and decide nothing.
+
+    🔴 The add-on's STATUS is passed through untouched, because the status IS the
+    protocol: 200 granted · 403 a definite refusal, self-destruct now · 503 the
+    grant state is UNKNOWN, keep the lease and retry until expiry. Collapsing 403
+    and 503 into one error would either revoke the household on every add-on
+    restart, or never revoke at all.
+    """
+
+    url = "/api/chickadee_voice/voice/lease"
+    extra_urls = ["/api/chickadee/voice/lease"]  # cross-integration path (see module docstring)
+    name = "api:chickadee_voice:voice:lease"
+    requires_auth = True
+
+    async def post(self, request: web.Request) -> web.Response:
+        hass: HomeAssistant = request.app["hass"]
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            body = {}
+
+        payload: dict = {"endpoint_id": (body or {}).get("endpoint_id") or "ha-voice"}
+        caps = (body or {}).get("capabilities")
+        if isinstance(caps, list):
+            payload["capabilities"] = [c for c in caps if isinstance(c, str)]
+
+        result, status = await request_lease(hass, payload)
+        return web.json_response(result, status=status)
+
+
 def register_voice_views(hass: HomeAssistant) -> None:
     """Register the gateway views (call only via async_register_voice_views)."""
     hass.http.register_view(ChickadeeVoiceConverseView())
     hass.http.register_view(ChickadeeVoiceStatusView())
     hass.http.register_view(ChickadeeVoiceLiveTokenView())
+    hass.http.register_view(ChickadeeVoiceLeaseView())
     _LOGGER.info("Registered Chickadee Voice gateway views (/api/chickadee_voice/voice/* + legacy /api/chickadee/voice/* aliases)")

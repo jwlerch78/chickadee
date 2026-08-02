@@ -20,12 +20,12 @@ const SECRET_FILE = path.join(DATA_DIR, 'bridge_secret.txt');
 // Where to surface the secret for the integration. HA Core does NOT see
 // /addon_configs on HAOS (verified 2026-07-25), so the addon_config copy alone
 // is unreadable by the integration — we ALSO drop it inside the HA config dir
-// (homeassistant_config:rw mount) at .dashie_voice/bridge_secret. INTERIM channel:
+// (homeassistant_config:rw mount) at .chickadee/bridge_secret. INTERIM channel:
 // any add-on with a config mount can read it; Supervisor discovery is primary.
 const ADDON_CONFIG_CANDIDATES = ['/addon_config', '/config'];
 const HA_CONFIG_CANDIDATES = ['/homeassistant'];
-const HA_CONFIG_SUBDIR = '.dashie_voice';
-const BRIDGE_HEADER = 'x-dashie-voice-bridge-secret';
+const HA_CONFIG_SUBDIR = '.chickadee';
+const BRIDGE_HEADER = 'x-chickadee-bridge-secret';
 
 let _secret = null;
 

@@ -218,10 +218,10 @@ app.post('/api/system/restart-core', async (req, res) => {
 app.post('/api/system/configure-integration', async (req, res) => {
     const flowId = await supervisor.getPendingIntegrationFlowId();
     if (!flowId) {
-        console.warn('[system] configure-integration: no pending dashie_voice discovery flow');
+        console.warn('[system] configure-integration: no pending chickadee_voice discovery flow');
         return res.status(409).json({ ok: false, error: 'no_pending_flow' });
     }
-    console.log(`[system] completing dashie_voice discovery flow ${flowId} from the console`);
+    console.log(`[system] completing chickadee_voice discovery flow ${flowId} from the console`);
     const result = await supervisor.completeIntegrationFlow(flowId);
     res.status(result.ok ? 200 : 502).json(result);
 });

@@ -417,7 +417,7 @@ async function getStates() {
 }
 
 /** In-progress config-flow list — WS-only, no REST equivalent. supervisor.js uses
- *  it to detect a PARKED dashie_voice discovery card (core restarted, the user
+ *  it to detect a PARKED chickadee_voice discovery card (core restarted, the user
  *  never clicked "Configure") so the console banner can absorb that click via
  *  /api/system/configure-integration instead of sending them menu-diving.
  *
