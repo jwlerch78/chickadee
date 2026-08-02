@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# GENERATED REPO — refuse hand-edits to the generated add-on channel.
+#
+# Everything under chickadee/ here is produced by brand-gen in the canonical
+# Dashie repo. An edit made here commits, diffs and reviews exactly like real
+# work, and is then destroyed by the next regeneration with no error and no log.
+# Author it in the SOURCE repo instead.
+#
+# ── THE EXCEPTIONS ARE THE POINT ──────────────────────────────────────────────
+# Three files in the channel are deliberately NOT generated, because they differ
+# from Dashie in substance rather than in wording, and generating them would
+# produce a confident description of a product that does not exist:
+#
+#   config.yaml    — the add-on's identity: slug, the wire values the integration
+#                    depends on, and the ABSENCE of the hosted-environment option.
+#   DOCS.md        — what Home Assistant shows on the add-on page.
+#   CHANGELOG.md   — Chickadee's own history, not Dashie's release list.
+#
+# And one is BUILT rather than written or generated:
+#
+#   server/brain/voice-brain.bundle.js — esbuild output from this channel's own
+#                    server/brain/src/. Edit the source and run
+#                    `node scripts/build-brain.mjs`; never touch the bundle.
+#
+# Exempt: BRAND_GEN=1 (the generator sets this — writing these trees is its job).
+
+set -euo pipefail
+
+[[ "${BRAND_GEN:-0}" == "1" ]] && exit 0
+
+STAGED=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && STAGED+=("$line")
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+[[ ${#STAGED[@]} -eq 0 ]] && exit 0
+
+OFFENDING=()
+BUNDLE=()
+for f in "${STAGED[@]}"; do
+    case "$f" in
+        # Hand-authored: always allowed.
+        */config.yaml|*/DOCS.md|*/CHANGELOG.md) ;;
+        # Built artifact: allowed, but say how it is actually produced.
+        */voice-brain.bundle.js) BUNDLE+=("$f") ;;
+        chickadee/*) OFFENDING+=("$f") ;;
+    esac
+done
+
+if [[ ${#BUNDLE[@]} -gt 0 && ${#OFFENDING[@]} -eq 0 ]]; then
+    echo "pre-commit: note — the brain bundle is BUILT output." >&2
+    echo "            A hand-edit to it dies at the next build, silently." >&2
+    echo "            Verify with: node scripts/build-brain.mjs --check" >&2
+fi
+
+[[ ${#OFFENDING[@]} -eq 0 ]] && exit 0
+
+SOURCE="$(sed -n 's/^Generated from \([^ ]*\) @.*/\1/p' chickadee/GENERATED 2>/dev/null | head -1)"
+
+echo "" >&2
+echo "pre-commit: ❌ refusing — these files are GENERATED and the next" >&2
+echo "               regeneration will delete your changes, silently." >&2
+echo "" >&2
+for f in "${OFFENDING[@]}"; do echo "    $f" >&2; done
+echo "" >&2
+echo "  → Author this in ${SOURCE:-the canonical Dashie console repo}," >&2
+echo "    commit, PUSH it (brand-gen reads origin/<ref>, not your working" >&2
+echo "    tree), then regenerate:" >&2
+echo "" >&2
+echo "      npm run gen:brand" >&2
+echo "" >&2
+echo "  Hand-authored files in this channel — edit these here, freely:" >&2
+echo "      chickadee/config.yaml  chickadee/DOCS.md  chickadee/CHANGELOG.md" >&2
+echo "" >&2
+echo "  If you are certain (you are brand-gen, or repairing a broken tree):" >&2
+echo "    BRAND_GEN=1 git commit ..." >&2
+echo "" >&2
+exit 1
