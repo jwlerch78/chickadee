@@ -26,8 +26,8 @@ async function publish(secret, log = console.log) {
         service: SERVICE,
         config: {
             // Our OWN container hostname on the hassio network — correct for
-            // ANY channel (prod `62f754e2-dashie-ha`, dev `62f754e2-dashie-ha-dev`,
-            // local `local-dashie-ha`). Was hardcoded 'local-dashie-ha', which
+            // ANY channel (prod `62f754e2-chickadee`, dev `62f754e2-chickadee-dev`,
+            // local `local-chickadee`). Was hardcoded 'local-chickadee', which
             // is unreachable from the dev slug → the integration reported
             // addon_unreachable and kiosks never picked up the shared account.
             // The integration still falls back to its Supervisor lookup / static

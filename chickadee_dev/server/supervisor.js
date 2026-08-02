@@ -140,7 +140,7 @@ async function completeIntegrationFlow(flowId) {
  *
  * Used for the revocation fast path: turning household sharing off must reach the
  * wall tablets in SECONDS, not at their 24h liveness poll. The tablet-facing relay
- * lives in the `dashie` integration (`dashie.refresh_voice_config` →
+ * lives in the `dashie` integration (`chickadee.refresh_voice_config` →
  * coordinator.send_command("refreshVoiceConfig") → the device's :2323 API →
  * KioskJwtRefresher.verifySessionNow). A 404/400 here just means that integration
  * isn't installed on this box — expected, and not an error worth shouting about.

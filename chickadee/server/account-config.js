@@ -110,7 +110,7 @@ async function getAccountVoiceConfig() {
           retainTranscripts: row.retain_transcripts === true,
           // Household conversation agent mode (live|dialog|single) — the console's Voice & AI
           // page writes user_settings.voice.agentMode (ACCOUNT_VOICE_KEYS). Carried to
-          // anonymous kiosks via the integration's /api/dashie/voice/status so they behave
+          // anonymous kiosks via the integration's /api/chickadee/voice/status so they behave
           // like the account chose (Live-on-kiosk, 2026-07-09). '' = unset → kiosk default.
           agentMode: typeof settings?.voice?.agentMode === 'string' ? settings.voice.agentMode : '',
           // Household Chickadee Intelligence sharing — ACCOUNT-scoped (2026-07-13). Previously

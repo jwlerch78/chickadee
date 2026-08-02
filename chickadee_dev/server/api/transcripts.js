@@ -3,8 +3,8 @@
 // Console-facing read/clear proxy for HA-local voice transcripts.
 //
 // The Chickadee integration (HA core) stores opted-in voice transcripts locally
-// (.storage/dashie.voice_transcripts) and exposes them at HA's authed
-// /api/dashie/voice/transcripts. The Console can't call that HA endpoint
+// (.storage/chickadee.voice_transcripts) and exposes them at HA's authed
+// /api/chickadee/voice/transcripts. The Console can't call that HA endpoint
 // directly (no HA token in the browser), so we proxy through the add-on, which
 // already holds the supervisor token via ha-client. Build plan §17.
 //

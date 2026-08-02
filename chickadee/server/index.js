@@ -234,11 +234,11 @@ app.use('/api/voice', voiceConsoleRouter);   // engines/probe/preview/discover/�
 app.use('/api/ha', haRouter);
 // Household camera feeds (proxies the integration's feed_registry views).
 app.use('/api/feeds', feedsRouter);
-// HA-local kiosk voice transcripts (.storage/dashie.voice_transcripts).
+// HA-local kiosk voice transcripts (.storage/chickadee.voice_transcripts).
 app.use('/api/transcripts', transcriptsRouter);
 app.use('/api/keys', keysRouter);
 app.use('/api/settings', settingsRouter);
-// Bridge-secret gated (LAN-sharing lane for the integration's /api/dashie/voice/* views).
+// Bridge-secret gated (LAN-sharing lane for the integration's /api/chickadee/voice/* views).
 app.use('/api/internal', internalRouter);
 
 // ── Frontend: the vendored Chickadee console ──────────────────────────────────
@@ -322,7 +322,7 @@ installer.ensureIntegration();
 supervisor.ensureSidebarPanel();
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[dashie-ha] listening on :${PORT} (bridge + console) — brain @ ${brainMeta.shortSha || '?'}`);
+    console.log(`[chickadee] listening on :${PORT} (bridge + console) — brain @ ${brainMeta.shortSha || '?'}`);
 });
 server.on('error', (err) => {
     console.error('[fatal] Server error:', err?.stack || err);

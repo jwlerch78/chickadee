@@ -1,7 +1,7 @@
 /* ============================================================
    Feeds API — thin wrapper over the add-on's /api/feeds/* routes,
    which proxy to the HA integration's household feed registry
-   (custom_components/dashie/feed_registry.py).
+   (custom_components/chickadee/feed_registry.py).
 
    Add-on mode only — every method throws when the Console isn't
    running inside the HA add-on (callers gate UI on

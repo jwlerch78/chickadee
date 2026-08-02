@@ -102,23 +102,23 @@ async function getHistory(entityId, startISO, endISO) {
 }
 
 /** GET the HA-local voice transcripts the Chickadee integration stores
- *  (.storage/dashie.voice_transcripts). Used by the Console to show kiosk
+ *  (.storage/chickadee.voice_transcripts). Used by the Console to show kiosk
  *  voice history. Returns the parsed { transcripts: [...] } body. */
 async function getTranscripts(limit = 100) {
     const config = getConfig();
     if (!config) throw new Error('HA client not configured');
-    const url = `${config.baseUrl}/api/dashie/voice/transcripts?limit=${encodeURIComponent(limit)}`;
+    const url = `${config.baseUrl}/api/chickadee/voice/transcripts?limit=${encodeURIComponent(limit)}`;
     const resp = await fetch(url, {
         headers: { Authorization: `Bearer ${config.token}` },
     });
-    if (!resp.ok) throw new Error(`/api/dashie/voice/transcripts: HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error(`/api/chickadee/voice/transcripts: HTTP ${resp.status}`);
     return resp.json();
 }
 
 /**
  * Call an HA service — POST /api/services/<domain>/<service> with a JSON body.
  * Used to push device commands via the Chickadee integration (e.g.
- * dashie.refresh_voice_config on a household-sharing toggle). Throws on HTTP error.
+ * chickadee.refresh_voice_config on a household-sharing toggle). Throws on HTTP error.
  */
 async function callService(domain, service, data = {}) {
     const config = getConfig();
@@ -137,12 +137,12 @@ async function callService(domain, service, data = {}) {
 async function clearTranscripts() {
     const config = getConfig();
     if (!config) throw new Error('HA client not configured');
-    const url = `${config.baseUrl}/api/dashie/voice/transcripts`;
+    const url = `${config.baseUrl}/api/chickadee/voice/transcripts`;
     const resp = await fetch(url, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${config.token}` },
     });
-    if (!resp.ok) throw new Error(`/api/dashie/voice/transcripts DELETE: HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error(`/api/chickadee/voice/transcripts DELETE: HTTP ${resp.status}`);
     return resp.json();
 }
 

@@ -66,7 +66,7 @@ async function converseCloud(payload, jwt) {
                 ? 'Your Chickadee balance is empty. Add credits to keep using hosted voice.'
                 : 'Chickadee could not complete that request right now.';
         }
-        console.log(`DASHIE-BRAIN route=cloud type=${turn?.type || '?'} ok=${resp.ok && turn?.ok !== false} ` +
+        console.log(`CHICKADEE-BRAIN route=cloud type=${turn?.type || '?'} ok=${resp.ok && turn?.ok !== false} ` +
             `degraded=${turn?.metadata?.degraded || '-'} latency=${Date.now() - t0}ms`);
         return { status: resp.ok ? 200 : resp.status, body: turn };
     } catch (e) {
@@ -122,7 +122,7 @@ async function converse(payload) {
 
     // ── Route (see the file header for the precedence and why) ──────────────────
     let shell = null;      // createAddonIO options for an on-box/BYOK turn
-    let routeTag = '';     // for the DASHIE-TURN log line
+    let routeTag = '';     // for the CHICKADEE-TURN log line
     if (endpoint && optModel) {
         shell = { endpoint, model: optModel, key: String(opts.llm_api_key || '') };
         routeTag = 'local';
@@ -145,7 +145,7 @@ async function converse(payload) {
     if (!shell) {
         if (jwt) {
             const nCloud = ((payload.provided_context || {}).ha_entities || []).length;
-            console.log(`DASHIE-TURN route=cloud text="${text}" entities=${nCloud}`);
+            console.log(`CHICKADEE-TURN route=cloud text="${text}" entities=${nCloud}`);
             return await converseCloud({ ...payload, text }, jwt);
         }
         console.warn('DROP: converse with no brain configured (sign in, add a provider API key, or set llm_url + llm_model in the add-on Configuration tab)');
@@ -170,7 +170,7 @@ async function converse(payload) {
     };
 
     const nEntities = ((payload.provided_context || {}).ha_entities || []).length;
-    console.log(`DASHIE-TURN route=${routeTag} account=${jwt ? 'yes' : 'no'} text="${text}" ` +
+    console.log(`CHICKADEE-TURN route=${routeTag} account=${jwt ? 'yes' : 'no'} text="${text}" ` +
         `endpoint_id=${brainReq.endpoint_id} conversation_id=${brainReq.conversation_id || '-'} ` +
         `entities=${nEntities} model=${model}`);
 
@@ -184,7 +184,7 @@ async function converse(payload) {
             { req: brainReq, userId: userId || 'local', token: jwt || '', supabase: null },
             io,
         );
-        console.log(`DASHIE-BRAIN type=${turn?.type || '?'} ok=${turn?.ok !== false} ` +
+        console.log(`CHICKADEE-BRAIN type=${turn?.type || '?'} ok=${turn?.ok !== false} ` +
             `latency=${Date.now() - t0}ms brain=${brain.BRAIN_SOURCE_SHA?.slice(0, 9) || '?'}`);
         return { status: 200, body: turn };
     } catch (e) {

@@ -57,7 +57,7 @@ router.put('/household-sharing', requireSignedIn, express.json(), async (req, re
     console.log(`[settings] household-sharing → ${enabled} (account-scoped; cache invalidated)`);
     // Fast path: tell every kiosk to re-verify its session NOW. Best-effort and
     // fire-and-forget — the setting itself is already written by the console.
-    supervisor.callService('dashie', 'refresh_voice_config', {}).then(ok => {
+    supervisor.callService('chickadee', 'refresh_voice_config', {}).then(ok => {
         if (ok) console.log('[settings] pushed refresh_voice_config to kiosks');
     });
     let householdSharing = enabled;

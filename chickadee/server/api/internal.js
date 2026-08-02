@@ -2,7 +2,7 @@
 // api/internal.js — endpoints for the trusted in-HA caller (the Chickadee Voice
 // integration), reached over the hassio Docker network. Ported from the Chickadee
 // add-on's api/internal.js — this is the LAN-sharing lane: a Chickadee tablet in
-// kiosk mode gets household voice through the integration's /api/dashie/voice/*
+// kiosk mode gets household voice through the integration's /api/chickadee/voice/*
 // views, which proxy here.
 //
 // 🔐 Every call must carry X-Chickadee-Voice-Bridge-Secret (enforced from birth —
@@ -141,7 +141,7 @@ router.post('/authorize-device', express.json(), async (req, res) => {
 /**
  * GET /api/internal/voice-config
  * The account's voice route + kiosk mirror block. Same wire shape as the
- * Chickadee add-on's — the integration forwards it on /api/dashie/voice/status.
+ * Chickadee add-on's — the integration forwards it on /api/chickadee/voice/status.
  * Route semantics here: account-config's resolveBrainRoute (ai.model + the
  * box's BYO key store). The add-on's Configuration-tab llm_url is the ASSIST
  * lane's brain and does not flip this route.

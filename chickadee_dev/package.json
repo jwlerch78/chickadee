@@ -1,5 +1,5 @@
 {
-  "name": "dashie-ha-addon",
+  "name": "chickadee-addon",
   "version": "0.8.6",
   "description": "Chickadee — brain runtime + console for the chickadee_voice integration.",
   "main": "server/index.js",

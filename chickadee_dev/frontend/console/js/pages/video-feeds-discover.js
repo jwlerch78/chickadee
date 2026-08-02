@@ -2,7 +2,7 @@
    Video Feed Discovery — "Discover cameras" picker modal.
 
    Lists cameras the household could add as feeds, from the
-   integration's GET /api/dashie/feeds/discover (via
+   integration's GET /api/chickadee/feeds/discover (via
    FeedsApi.discover): every streamable HA/Frigate camera that
    isn't already a feed. One click adds it with sensible defaults
    (no trigger — on-demand; edit afterward to add motion alerts).

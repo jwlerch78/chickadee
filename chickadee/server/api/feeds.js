@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // server/api/feeds.js
 // Video feed registry proxy — the Console's window into the HA integration's
-// household-level feed registry (custom_components/dashie/feed_registry.py,
-// stored in HA's .storage/dashie.video_feeds).
+// household-level feed registry (custom_components/chickadee/feed_registry.py,
+// stored in HA's .storage/chickadee.video_feeds).
 //
 // The Console never talks to HA directly; these routes forward to the
 // integration's HTTP views using the supervisor token, the same trust model
@@ -68,7 +68,7 @@ function handleError(res, e, label) {
  *  integration with availability, rtsp_url, and Frigate camera info. */
 router.get('/', async (req, res) => {
     try {
-        relay(res, await haFetchJson('/api/dashie/feeds'), 'list');
+        relay(res, await haFetchJson('/api/chickadee/feeds'), 'list');
     } catch (e) { handleError(res, e, 'list'); }
 });
 
@@ -80,7 +80,7 @@ router.post('/', express.json(), async (req, res) => {
         return res.status(400).json({ error: 'feed body required' });
     }
     try {
-        relay(res, await haFetchJson('/api/dashie/feeds', { method: 'POST', body: feed }), 'save');
+        relay(res, await haFetchJson('/api/chickadee/feeds', { method: 'POST', body: feed }), 'save');
     } catch (e) { handleError(res, e, 'save'); }
 });
 
@@ -90,7 +90,7 @@ router.delete('/:feedId', async (req, res) => {
     const feedId = req.params.feedId;
     if (!feedId) return res.status(400).json({ error: 'feed_id required' });
     try {
-        const path = `/api/dashie/feeds/${encodeURIComponent(feedId)}`;
+        const path = `/api/chickadee/feeds/${encodeURIComponent(feedId)}`;
         relay(res, await haFetchJson(path, { method: 'DELETE' }), 'delete');
     } catch (e) { handleError(res, e, 'delete'); }
 });
@@ -100,7 +100,7 @@ router.delete('/:feedId', async (req, res) => {
  *  soften to an empty list so the Console picker just shows auto/none. */
 router.get('/meta/frigate-cameras', async (req, res) => {
     try {
-        const result = await haFetchJson('/api/dashie/frigate/cameras');
+        const result = await haFetchJson('/api/chickadee/frigate/cameras');
         if (!result.ok) return res.json({ cameras: [] });
         res.json({ cameras: result.body?.cameras || [] });
     } catch (e) { handleError(res, e, 'frigate-cameras'); }
@@ -112,7 +112,7 @@ router.get('/meta/frigate-cameras', async (req, res) => {
  *  add" rather than an error. */
 router.get('/meta/discover', async (req, res) => {
     try {
-        const result = await haFetchJson('/api/dashie/feeds/discover');
+        const result = await haFetchJson('/api/chickadee/feeds/discover');
         if (!result.ok) return res.json({ cameras: [] });
         res.json({ cameras: result.body?.cameras || [] });
     } catch (e) { handleError(res, e, 'discover'); }

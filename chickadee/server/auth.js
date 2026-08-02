@@ -31,7 +31,7 @@ function getStableDeviceId() {
         const id = fs.readFileSync(DEVICE_ID_FILE, 'utf8').trim();
         if (/^[A-Za-z0-9_-]{8,64}$/.test(id)) return id;
     } catch { /* absent — create below */ }
-    const id = `dashie-ha-addon-${crypto.randomBytes(6).toString('hex')}`;
+    const id = `chickadee-addon-${crypto.randomBytes(6).toString('hex')}`;
     try { fs.writeFileSync(DEVICE_ID_FILE, id, { mode: 0o600 }); } catch (e) {
         console.warn('[auth] could not persist device id (using ephemeral):', e.message);
     }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// bridge-auth.js — the integration↔add-on bridge secret (dashie-voice-integration CONTRACTS.md).
+// bridge-auth.js — the integration↔add-on bridge secret (chickadee-voice-integration CONTRACTS.md).
 //
 // Extracted from index.js when the server became Express (console port); the
 // behavior is unchanged: generate-or-load the secret in /data, mirror it where

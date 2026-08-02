@@ -95,7 +95,7 @@ async function handleStt(req, res, sendJson) {
             return;
         }
         const text = String(data.text || '').trim();
-        console.log(`DASHIE-STT text="${text}" bytes=${audio.length} latency=${Date.now() - t0}ms`);
+        console.log(`CHICKADEE-STT text="${text}" bytes=${audio.length} latency=${Date.now() - t0}ms`);
         sendJson(res, 200, { text });
     } catch (e) {
         clearTimeout(timer);
@@ -129,7 +129,7 @@ async function cloudStt(audio, jwt, res, sendJson) {
             return;
         }
         const text = String(data.transcript || data.text || '').trim();
-        console.log(`DASHIE-STT route=cloud text="${text}" bytes=${audio.length} latency=${Date.now() - t0}ms`);
+        console.log(`CHICKADEE-STT route=cloud text="${text}" bytes=${audio.length} latency=${Date.now() - t0}ms`);
         sendJson(res, 200, { text });
     } catch (e) {
         console.warn('DROP: cloud stt unreachable:', e.message);
@@ -158,7 +158,7 @@ async function cloudTts(text, voice, jwt, res, sendJson) {
         }
         const audio = Buffer.from(await resp.arrayBuffer());
         const ctype = resp.headers.get('Content-Type') || 'audio/mpeg';
-        console.log(`DASHIE-TTS route=cloud chars=${text.length} bytes=${audio.length} latency=${Date.now() - t0}ms`);
+        console.log(`CHICKADEE-TTS route=cloud chars=${text.length} bytes=${audio.length} latency=${Date.now() - t0}ms`);
         res.writeHead(200, { 'Content-Type': ctype, 'Cache-Control': 'no-store' });
         res.end(audio);
     } catch (e) {
@@ -213,7 +213,7 @@ async function handleTts(req, res, sendJson) {
             return;
         }
         const audio = Buffer.from(await resp.arrayBuffer());
-        console.log(`DASHIE-TTS chars=${text.length} voice=${voice || '(default)'} bytes=${audio.length} latency=${Date.now() - t0}ms`);
+        console.log(`CHICKADEE-TTS chars=${text.length} voice=${voice || '(default)'} bytes=${audio.length} latency=${Date.now() - t0}ms`);
         res.writeHead(200, { 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' });
         res.end(audio);
     } catch (e) {

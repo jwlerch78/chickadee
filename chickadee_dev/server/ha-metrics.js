@@ -111,7 +111,7 @@ const METRIC_MAP = {
     }}),
     // The Chickadee HA integration registers the brightness number entity with
     // unique_id "<device_id>_brightness_control" (see custom_components/
-    // dashie/number.py ChickadeeBrightnessNumber._attr_unique_id). Alias the
+    // chickadee/number.py ChickadeeBrightnessNumber._attr_unique_id). Alias the
     // role so the brightness chip lights up on cards again — without this
     // the unique_id prefix matched but the role string didn't, so HA was
     // exposing the entity yet the Console card was empty.

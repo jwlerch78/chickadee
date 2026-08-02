@@ -197,7 +197,7 @@ async function _refreshRegistryCache() {
     for (const entry of list) {
         byHaId.set(entry.id, entry);
         // identifiers is an array of [domain, id] tuples; the Chickadee integration
-        // uses domain "dashie" with the device_id as the second element.
+        // uses domain "chickadee" with the device_id as the second element.
         for (const ident of entry.identifiers || []) {
             if (Array.isArray(ident) && ident[0] === 'dashie' && ident[1]) {
                 byChickadeeId.set(ident[1], entry);
@@ -211,7 +211,7 @@ async function _refreshRegistryCache() {
 /** Returns the registry entry (with id, name, name_by_user, identifiers, ...) or null.
  *
  *  Two-path lookup:
- *    1. By `identifiers` tuple `("dashie", <id>)` — works when the Chickadee
+ *    1. By `identifiers` tuple `("chickadee", <id>)` — works when the Chickadee
  *       integration's DeviceInfo identifier equals the id we're searching by.
  *    2. By the device-id sensor's STATE — the worker reports anchor.state as
  *       the dashie device_id, but the integration sets the device-registry
