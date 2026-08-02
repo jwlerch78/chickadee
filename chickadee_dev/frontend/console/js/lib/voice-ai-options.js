@@ -102,7 +102,7 @@ const VoiceAiOptions = {
      * `ei_hey_dashie` is absent on purpose — internal Edge-Impulse model, not user-facing.
      */
     WAKE_WORDS: [
-        { id: 'hey_dashie',      label: 'Hey Chickadee' },
+        { id: 'hey_dashie',      label: 'Hey Dashie' },
         // Standalone keyword, real in-house microWakeWord model (v0 dual-engine).
         // Predates the 2026-07-30 brand consolidation and is no longer any build's
         // default — kept because the weights ship and the id is a persisted wire

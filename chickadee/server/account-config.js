@@ -66,7 +66,7 @@ function _readCachedConfig() {
 // user_settings read failure would write customizePipeline=false + alwaysOpenDialog=false
 // onto every kiosk in the house. Null → /voice-config omits `pipeline` → the integration
 // forwards nothing → the applier leaves the kiosk alone. (Audit 2026-07-13, #4.)
-const SAFE_DEFAULT = { model: null, route: 'cloud', localLlmUrl: '', localLlmModel: '', localLlmKey: '', hermesUrl: '', retainTranscripts: false, agentMode: '', retrievePictures: null, webSearchEnabled: null, zipCode: '', defaultPersonalityId: '', defaultVoiceKey: '', defaultWakeWord: '', householdSharing: false, pipeline: null };
+const SAFE_DEFAULT = { model: null, route: 'cloud', localLlmUrl: '', localLlmModel: '', localLlmKey: '', hermesUrl: '', retainTranscripts: false, agentMode: '', retrievePictures: null, webSearchEnabled: null, zipCode: '', defaultPersonalityId: '', defaultVoiceKey: '', defaultWakeWord: 'chickadee', householdSharing: false, pipeline: null };
 
 /** Coerce a settings value to a string, '' when absent/non-string. */
 function str(v) { return typeof v === 'string' ? v : ''; }
@@ -133,7 +133,7 @@ async function getAccountVoiceConfig() {
           // WS-G §13.2: household account defaults — anon kiosks resolve the
           // household-sharing account's defaults (locked decision), still
           // overridable on-device. '' = unset → kiosk/app defaults
-          // (Chickadee personality / Hey Chickadee).
+          // (Chickadee personality / Hey Dashie).
           defaultPersonalityId: typeof settings?.ai?.defaultPersonalityId === 'string' ? settings.ai.defaultPersonalityId : '',
           defaultVoiceKey: typeof settings?.ai?.defaultVoiceKey === 'string' ? settings.ai.defaultVoiceKey : '',
           defaultWakeWord: typeof settings?.ai?.defaultWakeWord === 'string' ? settings.ai.defaultWakeWord : '',

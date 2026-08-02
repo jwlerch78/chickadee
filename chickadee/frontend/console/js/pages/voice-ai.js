@@ -275,7 +275,7 @@ const VoiceAiPage = {
             this._seedFreshAccountDefaults();
             // Wake word needs its OWN seed, not a line inside the fresh-account one:
             // that seed early-returns on any account that already picked a preset, i.e.
-            // every existing household. They'd render "Hey Chickadee" (from DEFAULTS) while
+            // every existing household. They'd render "Hey Dashie" (from DEFAULTS) while
             // user_settings held nothing — and everything downstream reads the PERSISTED
             // value (Kotlin, the brain, the kiosk mirror), so they'd all see nothing.
             // That's Invariant 5's exact gap. Runs for every account, exactly once.
