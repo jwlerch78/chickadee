@@ -70,7 +70,7 @@ const TARGET_DIR = VENDORED_DOMAIN
     : null;
 // Vendored by scripts/sync-integration.sh, shipped in the image (Dockerfile).
 const BUNDLED_DIR = VENDORED_DOMAIN ? path.join(VENDOR_ROOT, VENDORED_DOMAIN) : null;
-const MARKER = '.installed_by_dashie_ha_addon';
+const MARKER = '.installed_by_chickadee_addon';
 
 function readManifestVersion(dir) {
     try {
