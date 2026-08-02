@@ -9,7 +9,16 @@ version: "0.1.0"
 # Changing this word breaks that discovery silently — both sides stay healthy and
 # the integration simply never finds the add-on.
 slug: chickadee
-description: Voice & AI for Home Assistant — free, self-hosted, no account. Gives your voice assistant a real brain: ask anything, control your home in plain language, and hear natural voices back. Bring your own AI — a local model on your own hardware, or your own provider API key. Sets up the Chickadee Voice integration and a ready-to-use voice assistant for you.
+# ⚠️ FOLDED BLOCK (>-), not a bare scalar. An unquoted YAML scalar ends at the
+# first ": " it contains, so "a real brain: ask anything" parsed as a nested
+# mapping and Supervisor refused the whole file — the add-on then simply does not
+# appear in the store, with no error the user ever sees.
+description: >-
+  Voice & AI for Home Assistant — free, self-hosted, no account. Gives your
+  voice assistant a real brain: ask anything, control your home in plain
+  language, and hear natural voices back. Bring your own AI — a local model on
+  your own hardware, or your own provider API key. Sets up the Chickadee Voice
+  integration and a ready-to-use voice assistant for you.
 url: https://github.com/jwlerch78/chickadee
 arch:
   - aarch64

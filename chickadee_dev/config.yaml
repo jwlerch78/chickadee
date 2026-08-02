@@ -14,7 +14,16 @@ version: "0.1.0"
 # Changing this word breaks that discovery silently — both sides stay healthy and
 # the integration simply never finds the add-on.
 slug: chickadee_dev
-description: DEV CHANNEL — pre-release builds, for testing. Install the regular Chickadee add-on unless you were asked to test this one; both can run side by side. Voice & AI for Home Assistant — free, self-hosted, no account. Gives your voice assistant a real brain: ask anything, control your home in plain language, and hear natural voices back. Bring your own AI — a local model on your own hardware, or your own provider API key. Sets up the Chickadee Voice integration and a ready-to-use voice assistant for you.
+# ⚠️ FOLDED BLOCK (>-) — see the prod channel's note. A bare scalar ends at its
+# first ": ", which silently made this file unparseable to Supervisor.
+description: >-
+  DEV CHANNEL — pre-release builds, for testing. Install the regular Chickadee
+  add-on unless you were asked to test this one; both can run side by side.
+  Voice & AI for Home Assistant — free, self-hosted, no account. Gives your
+  voice assistant a real brain: ask anything, control your home in plain
+  language, and hear natural voices back. Bring your own AI — a local model on
+  your own hardware, or your own provider API key. Sets up the Chickadee Voice
+  integration and a ready-to-use voice assistant for you.
 url: https://github.com/jwlerch78/chickadee
 arch:
   - aarch64
