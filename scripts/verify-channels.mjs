@@ -148,6 +148,50 @@ print("\\n".join(bad))`;
             : `SERVICE=${svc ?? '?'} · config.yaml declares [${declared.join(', ') || '—'}] · vendored domain=${domain ?? '?'}`);
   }
 
+  // 6. 🔴 VINTAGE — the vendored integration must REGISTER the endpoints this
+  //    channel's contracts depend on, not merely exist.
+  //
+  //    Thread T's suggestion, and it closes a hole every check above shares: a
+  //    STALE-SOURCE regen is invisible to file-presence. Every file was there,
+  //    the manifest parsed, the COPY resolved — and the tree was simply an older
+  //    vintage that predated the lease view, so a lease-wired app got a 404 and
+  //    no test row could run.
+  //
+  //    Asserted by CAPABILITY, not by version. A version string can lie in both
+  //    directions — unbumped when the contract changed (which is exactly what
+  //    happened: 0.7.0 shipped both with and without the lease view), or bumped
+  //    without the change. What the device actually needs is the ROUTE.
+  {
+    const vroot = path.join(dir, 'integration/custom_components');
+    const REQUIRED_ROUTES = [
+      // #65 — satellites call this THROUGH the integration; the add-on's own
+      // endpoint is bridge-secret-only and unreachable from a device.
+      'voice/lease',
+      // #63/#66 — the gateway paths the APK builds.
+      'voice/converse',
+      'voice/status',
+    ];
+    let pkg = null;
+    try {
+      pkg = readdirSync(vroot).find((n) => existsSync(path.join(vroot, n, 'manifest.json'))) ?? null;
+    } catch { /* reported by check 5 */ }
+    if (!pkg) {
+      record(ch, 'vendored vintage', false, 'no vendored package to inspect');
+    } else {
+      const vv = path.join(vroot, pkg, 'voice_view.py');
+      const src = existsSync(vv) ? readFileSync(vv, 'utf8') : '';
+      const missing = REQUIRED_ROUTES.filter((r) => !src.includes(r));
+      const version = (() => {
+        try { return JSON.parse(readFileSync(path.join(vroot, pkg, 'manifest.json'), 'utf8')).version; }
+        catch { return '?'; }
+      })();
+      record(ch, 'vendored vintage', !missing.length,
+        missing.length
+          ? `v${version} does NOT register: ${missing.join(', ')} — the vendored tree predates a contract this channel depends on`
+          : `v${version} registers ${REQUIRED_ROUTES.join(', ')}`);
+    }
+  }
+
   // 5. The vendored integration carries a manifest — an empty dir would satisfy
   //    the COPY check while shipping no integration at all.
   const vendored = path.join(dir, 'integration/custom_components');
