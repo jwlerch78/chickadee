@@ -4,6 +4,26 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.7 — 2026-08-02
+
+**If you installed Chickadee before today, your voice integration had quietly
+stopped updating. This fixes it — no action needed from you.**
+
+The add-on marks the integration it installs with a small hidden file, and it
+checks for that mark to know the integration is its own to manage. The mark's
+name changed when the add-on was rebranded, so on boxes set up before that change
+the add-on stopped recognising its own work: it concluded you had installed the
+integration yourself, and politely left it alone from then on. Every later update
+was skipped, and the log said it was leaving a manual install alone — which read
+as correct, so nothing looked wrong.
+
+It now recognises the mark whichever name it carries, and repairs the name as it
+goes. Your integration updates on the next add-on start.
+
+**Also:** removing a device from the Console now actually removes it, and offers
+it back under "devices that can be added" so you can re-add it. Previously the
+row was kept and the device kept its access.
+
 ## 0.1.6 — 2026-08-02
 
 **The account entries are gone from the menu, not just broken.**
