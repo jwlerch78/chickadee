@@ -866,23 +866,6 @@ const App = {
     },
 
     renderPage() {
-        // ── LOCKED branch (2026-08-01) ───────────────────────────────────
-        // A page in FeatureGate.ACCOUNT_LOCKED_PAGES is VISIBLE in the nav and
-        // NOT routable: it renders an account-required stub and the real page
-        // module never executes — no fetch, no 401 storm, no half-populated
-        // account UI. Intercepting HERE rather than inside each page is the
-        // point; renderPage is the one funnel every render path goes through.
-        //
-        // Deliberately AHEAD of the auth guard below, and deliberately not a
-        // modification of it. The guard stays exactly as it was: if a locked
-        // page ever reaches it (isLocked disagreeing with requiresAccount, a
-        // page dropped from ACCOUNT_LOCKED_PAGES, FeatureGate absent), the
-        // whitelist still fires and still falls back to home. This branch only
-        // ever ADDS a safe render for a page the guard would otherwise bounce.
-        if (typeof FeatureGate !== 'undefined' && FeatureGate.isLocked(this._currentPage)) {
-            this._renderLockedPage(this._currentPage);
-            return;
-        }
 
         // Auth guard (the "auto logs back in after sign-out" fix): background
         // tasks call renderPage() asynchronously — the devices page's
@@ -1064,15 +1047,6 @@ const App = {
     // the user on the page (no navigation, no full reload). The title-bar
     // refresh icon (TopBar) calls this; _refreshing drives its spin state.
     async refreshCurrentPage() {
-        // Belt and braces for the locked state: _renderLockedPage draws no
-        // refresh button, but this is the one remaining path that would reach
-        // into this.pages and execute a locked page's fetch. Silent-ish by
-        // design — it can only be hit by a stale DOM node — but still loud.
-        if (typeof FeatureGate !== 'undefined' && FeatureGate.isLocked(this._currentPage)) {
-            console.warn(`DROP: refresh requested for locked page '${this._currentPage}' — ` +
-                         `account required; the page module is not run`);
-            return;
-        }
         const pageObj = this.pages[this._currentPage]?.page;
         if (!pageObj || typeof pageObj.refresh !== 'function' || this._refreshing) return;
         this._refreshing = true;

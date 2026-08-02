@@ -4,6 +4,15 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.6 — 2026-08-02
+
+**The account entries are gone from the menu, not just broken.**
+
+0.1.5 stopped the panel from failing to open. This removes the three sidebar
+entries — Account, Credits, Scheduled Actions — that were still being drawn in a
+build with no account. Clicking one did nothing useful and, on 0.1.5, nothing at
+all.
+
 ## 0.1.5 — 2026-08-02
 
 🔴 **The Chickadee panel opens.** On 0.1.4 and earlier it rendered blank — the

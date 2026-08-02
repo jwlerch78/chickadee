@@ -138,55 +138,12 @@ const FeatureGate = {
         'video-feeds',
     ]),
 
-    /**
-     * ACCOUNT-LOCKED PAGES — the third gating state (2026-08-01, John).
-     *
-     * Signed out, a page used to have exactly two fates: reachable
-     * (LOCAL_MODE_PAGES) or absent from the console entirely. Absent is the
-     * right answer for the closed family delta — those modules genuinely do not
-     * ship here. It is the WRONG answer for pages that exist, work, and simply
-     * need a (free) account: an HA user with no Chickadee account currently has no
-     * way to learn that Scheduled Actions or Credits exist at all. This set is
-     * the middle state — VISIBLE IN THE NAV, NOT REACHABLE — so the console can
-     * say what it can do without pretending to do it.
-     *
-     * ── WHY THIS IS A SEPARATE SET FROM LOCAL_MODE_PAGES, and must stay one ──
-     *
-     * LOCAL_MODE_PAGES is a whitelist whose polarity is a SAFETY property: a
-     * page is account-only until someone deliberately says otherwise, and the
-     * failure mode of the other polarity is rendering an account page — with its
-     * fetches, its 401s, its half-populated account UI — at a signed-out user.
-     * That whitelist is re-checked in three places (the sidebar, `_isRoutable`/
-     * `navigate`, and the `renderPage()` guard, which exists because renderPage
-     * is reached from background timers, SSE events and CreditsService — paths
-     * that never went through a navigation door).
-     *
-     * Membership HERE grants VISIBILITY ONLY. It is deliberately NOT consulted by
-     * `requiresAccount` or `isPageEnabled`, so:
-     *
-     *   - adding a page here can never make it routable;
-     *   - the router intercepts a locked page and renders a STUB
-     *     (AccountRequiredPanel) — the real page module never executes;
-     *   - if a locked page somehow reaches the renderPage() guard anyway, that
-     *     guard still fires and still falls back to home, unchanged.
-     *
-     * "Visible" must never come to imply "functional". If a page here starts
-     * genuinely working without an account, it belongs in LOCAL_MODE_PAGES and
-     * should LEAVE this set — the two are mutually exclusive, and `isLocked`
-     * enforces that (it is built on `requiresAccount`, which is false for
-     * anything whitelisted).
-     *
-     * Scope is local mode only, i.e. the published build inside the add-on
-     * (DashieAuth.isLocalMode is itself addon + published + unauthenticated).
-     * The standalone console shows a login wall when signed out, so there is no
-     * nav there to surface anything in.
-     *
-     * `account-usage` is deliberately absent: it is a sub-page reached from
-     * Account, not a nav entry, so locking it would surface nothing.
-     */
-    ACCOUNT_LOCKED_PAGES: new Set([
-        'credits', 'scheduled-actions', 'account', 'preferences', 'devices',
-    ]),
+    // EMPTY IN THIS BUILD, deliberately. Upstream this set makes
+    // account-only pages VISIBLE-but-locked so an HA user can learn the
+    // features exist. Here there is no account to sign into, so a locked
+    // entry would advertise a product that does not exist and lead to a
+    // renderer whose stub this build removes. Absent beats re-worded.
+    ACCOUNT_LOCKED_PAGES: new Set([]),
 
     /**
      * ⚠️ BRAND-ARC NOTE (2026-08-01) — read before this set outlives its context.
