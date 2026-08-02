@@ -86,6 +86,14 @@ ports: {}
 # install). Off = manage it yourself.
 options:
   log_level: info
+  # Capability-lease TTL in minutes (CONTRACTS #65). Bounds the worst-case delay
+  # between revoking shared access and a satellite noticing.
+  #
+  # There is deliberately NO `lease_ttl_seconds` here. That debug override exists
+  # only in the dev channel's schema, so Home Assistant refuses it on this one —
+  # which is how a sub-minute revocation window cannot be left running in a real
+  # household.
+  lease_ttl_minutes: 30
   install_integration: true
   llm_url: ""
   llm_model: ""
@@ -98,6 +106,7 @@ options:
   tts_api_key: ""
 schema:
   log_level: list(trace|debug|info|notice|warning|error|fatal)
+  lease_ttl_minutes: int(5,240)?
   install_integration: bool?
   llm_url: str?
   llm_model: str?

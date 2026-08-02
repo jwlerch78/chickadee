@@ -91,6 +91,17 @@ ports: {}
 # install). Off = manage it yourself.
 options:
   log_level: info
+  # Capability-lease TTL in minutes (CONTRACTS #65). Bounds the worst-case delay
+  # between revoking shared access and a satellite noticing.
+  lease_ttl_minutes: 30
+  # ⚠️ DEV CHANNEL ONLY — seconds, and it OVERRIDES the minutes above.
+  # Declared here and deliberately NOT in the prod channel's schema, so Home
+  # Assistant rejects it there before it can reach the add-on. That is the whole
+  # enforcement: no code branch, and no way to leave a 60-second revocation
+  # window running in a real household by accident.
+  # 0 / unset = off. Exists so the lease test suite costs minutes instead of the
+  # 3+ hours a real 30-minute TTL would price it at.
+  lease_ttl_seconds: 0
   install_integration: true
   llm_url: ""
   llm_model: ""
@@ -103,6 +114,8 @@ options:
   tts_api_key: ""
 schema:
   log_level: list(trace|debug|info|notice|warning|error|fatal)
+  lease_ttl_minutes: int(5,240)?
+  lease_ttl_seconds: int(0,14400)?
   install_integration: bool?
   llm_url: str?
   llm_model: str?
