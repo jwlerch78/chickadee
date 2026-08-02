@@ -1,21 +1,21 @@
 // verify-channels.mjs — everything about a channel that can be checked WITHOUT
-// building an image. One command, so T and S have a single cheap gate to call
-// before paying for a real build.
+// building an image. One command, so there is a cheap gate to call before paying
+// for a real build.
 //
 // ── WHERE THIS SITS, AND WHAT IT IS NOT ──────────────────────────────────────
 // Three questions, three owners:
 //
-//   THIS      does every artifact the runtime needs EXIST and resolve?
-//             Free, no docker, runs anywhere.
-//   T's smoke does it BUILD, START, and answer?  ← the authority on "it works"
-//   S's CI    is that still true tomorrow, unattended?
+//   THIS         does every artifact the runtime needs EXIST and resolve?
+//                Free, no docker, runs anywhere.
+//   the smoke    does it BUILD, START, and answer?  ← the authority on "it works"
+//   CI           is that still true tomorrow, unattended?
 //
 // 🔴 This is NECESSARY AND NOT SUFFICIENT. A green run here means "nothing is
 // obviously missing", never "it boots". It cannot see a bad base image, a failed
-// `npm ci`, or a module that throws on load. **S's CI should INVOKE T's smoke
+// `npm ci`, or a module that throws on load. **CI should INVOKE the smoke test
 // rather than rebuild it, and this in front of it rather than instead of it.**
 //
-// Why it exists at all: three C5 blockers in a row were the same sentence — the
+// Why it exists at all: three ship-blockers in a row were the same sentence — the
 // channel is missing a file the runtime needs — and each was invisible until the
 // previous was fixed. config.yaml unparseable · a COPY source absent · a
 // required sidecar never written. Each cost a full install-test cycle on real
@@ -33,11 +33,11 @@ import { compareChannels, PER_CHANNEL_FILES, PROD_CHANNEL, DEV_CHANNEL } from '.
 
 // ── --repo-root: point the statics at ANOTHER repo's channels ────────────────
 //
-// Thread S's proposal, and the payoff is measured rather than theoretical: the
-// three C5 ship-blockers these checks exist for — an unparseable config, a COPY
-// source that isn't in the build context, a required runtime sidecar the build
-// never wrote — are properties of ANY Home Assistant add-on channel, and the
-// Dashie channels that ship to real boxes have never been checked for them.
+// The payoff is measured rather than theoretical: the three ship-blockers these
+// checks exist for — an unparseable config, a COPY source that isn't in the
+// build context, a required runtime sidecar the build never wrote — are
+// properties of ANY Home Assistant add-on channel, and the sibling channels that
+// ship to real boxes had never been checked for any of them.
 //
 // A flag rather than a second copy of the script, obviously. The alternative was
 // vendoring this file into the other repos, which is the hand-mirror shape these
@@ -107,7 +107,7 @@ print("\\n".join(bad))`;
 
   // 1b. 🔴 PROVENANCE — the GENERATED stamp must name a ref someone else can resolve.
   //
-  //     Thread S's ask, and S was right to route it here rather than write it a
+  //     Put here rather than written a
   //     fourth time: the assertion already exists in two integration workflows
   //     and in check-addon-loadable's L7, and a copy in a YAML file is the
   //     hand-mirror shape. This workflow already invokes this script, so the
@@ -237,7 +237,7 @@ print("\\n".join(bad))`;
   // 6. 🔴 VINTAGE — the vendored integration must REGISTER the endpoints this
   //    channel's contracts depend on, not merely exist.
   //
-  //    Thread T's suggestion, and it closes a hole every check above shares: a
+  //    This closes a hole every check above shares: a
   //    STALE-SOURCE regen is invisible to file-presence. Every file was there,
   //    the manifest parsed, the COPY resolved — and the tree was simply an older
   //    vintage that predated the lease view, so a lease-wired app got a 404 and
@@ -289,7 +289,7 @@ print("\\n".join(bad))`;
   // 🔴 The anchor is the DOCKERFILE, not the directory: a channel whose build
   // never COPYs `integration/` does not vendor one, and failing it for that is
   // noise. A channel that DOES COPY it and is missing it still fails here AND at
-  // the COPY-source leg — which is the case that actually happened (C5 #2).
+  // the COPY-source leg — which is the case that actually happened (observed on a fresh box).
   const vendored = path.join(dir, 'integration/custom_components');
   const vendorsIntegration = existsSync(df)
     && /^\s*COPY\s+.*\bintegration\//m.test(readFileSync(df, 'utf8'));
@@ -319,7 +319,7 @@ print("\\n".join(bad))`;
 //    dev channel was a hand-run rsync of it, so the repo's second shipping
 //    artifact had no gate at all — every check above runs against each channel
 //    independently and would happily pass two channels that had drifted apart.
-//    "Both channels presumably, same generation" appears in three C5 blocker
+//    "Both channels presumably, same generation" appears in three fresh-box blocker
 //    reports; nothing ever verified it.
 //
 //    The exemption list lives in mirror-dev-channel.mjs and is imported, not

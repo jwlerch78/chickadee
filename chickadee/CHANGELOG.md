@@ -4,6 +4,27 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.2 — 2026-08-02
+
+**Your provider keys are now only spent when you say so.**
+
+Chickadee could already be told not to share voice and A.I. with the rest of the
+house, but nothing actually checked that before spending — so a satellite could
+keep using your stored provider keys after you had turned sharing off. It now
+checks before every call that costs money, and Home Assistant's own voice
+engines keep working either way, because they cost nothing.
+
+- **The sharing switch is on the Voice & A.I. page**, and it works without a
+  Dashie account. It is **on by default**: the person who stored the key and the
+  person who set up the satellite are the same person here.
+- **Turning it off applies to this whole box**, including this console — not
+  just to satellites. The switch says so.
+- **Changes take effect in seconds**, not after a wait. Devices are told
+  immediately instead of finding out at their next check-in.
+- A device that is refused **falls back to Home Assistant's engines** rather than
+  going silent, and picks the shared brain back up when you turn sharing on or
+  add a key.
+
 ## 0.1.1 — 2026-08-02
 
 Fixes found by a fresh-box install test. Everything here was invisible on a

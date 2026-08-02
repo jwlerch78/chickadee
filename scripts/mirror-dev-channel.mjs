@@ -5,8 +5,8 @@
 // The generator writes ONE add-on channel (`chickadee/`). The dev channel has
 // always been a hand-run rsync of it — which means the repo's second shipping
 // artifact was produced by a command nobody could read afterwards, and no gate
-// covered it. I flagged that twice in status ("verified it by hand this time")
-// and both times the honest report was: nothing checks this.
+// covered it. The honest report each time it came up was: nothing checks this,
+// it was verified by hand.
 //
 // A hand-run copy of a generated tree is a hand-mirror in the most literal
 // sense. The standing rule says eliminate the seam before linting it, so the
@@ -101,8 +101,8 @@ export function compareChannels(root = repoRoot) {
   }
 
   // The exempted file still has properties that must hold. Exempt from
-  // byte-identity is not exempt from every check — the four wires that broke a
-  // box in session 24 were all values two files had to agree on.
+  // byte-identity is not exempt from every check — the four wires that once
+  // broke a box were all values two files had to agree on.
   const cfg = (dir) => (existsSync(path.join(dir, 'config.yaml')) ? readFileSync(path.join(dir, 'config.yaml'), 'utf8') : '');
   const slug = (t) => (t.match(/^slug:\s*(\S+)/m) || [])[1] ?? null;
   const version = (t) => (t.match(/^version:\s*"?([^"\s]+)"?/m) || [])[1] ?? null;
@@ -125,7 +125,7 @@ export function compareChannels(root = repoRoot) {
   // The discovery service is a WIRE value shared with the vendored integration,
   // which is byte-identical in both channels — so a channel declaring a
   // different one is declaring a service its own integration does not provide.
-  // Supervisor 403s that, repeating every worker cycle (C5 defect #5).
+  // Supervisor 403s that, repeating every worker cycle (observed on a fresh box).
   const [pd, dd] = [discovery(pt), discovery(dt)];
   if (pd.join(',') !== dd.join(',')) {
     problems.push(`discovery services disagree: ${PROD_CHANNEL}=[${pd}] ${DEV_CHANNEL}=[${dd}] — both vendor the SAME integration`);
