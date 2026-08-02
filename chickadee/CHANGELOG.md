@@ -4,6 +4,11 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.4 — 2026-08-02
+
+**A new look.** Chickadee's mark is now orange. Nothing else changed — no
+behaviour, no settings, no permissions.
+
 ## 0.1.3 — 2026-08-02
 
 **Turning sharing off now reaches your devices in seconds.**
