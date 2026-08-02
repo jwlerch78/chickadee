@@ -81,6 +81,39 @@ print("\\n".join(bad))`;
     record(ch, 'yaml parses', !out, out || `${yamls.length} file(s)`);
   }
 
+  // 1b. 🔴 PROVENANCE — the GENERATED stamp must name a ref someone else can resolve.
+  //
+  //     Thread S's ask, and S was right to route it here rather than write it a
+  //     fourth time: the assertion already exists in two integration workflows
+  //     and in check-addon-loadable's L7, and a copy in a YAML file is the
+  //     hand-mirror shape. This workflow already invokes this script, so the
+  //     check belongs beside the other statics — one implementation, invoked by
+  //     CI.
+  //
+  //     The gap it closes is exact: the add-on repo's CI had `loadable`, `yaml`
+  //     and `syntax` but no provenance job, so a `--from-local` stamp — the one
+  //     state where the defect was actually LIVE — sailed straight through the
+  //     one repo that ships to users.
+  //
+  //     What it can and cannot know: running inside this repo there is no
+  //     upstream clone to resolve the SHA against, so it asserts the CLAIM is
+  //     well-formed and not self-admittedly unverifiable. `--from-local` stamps
+  //     say so in their own text, which is what makes that cheap and sufficient.
+  {
+    const stamp = path.join(dir, 'GENERATED');
+    if (!existsSync(stamp)) {
+      record(ch, 'provenance stamp', false, 'GENERATED is missing — the tree makes no provenance claim at all');
+    } else {
+      const text = readFileSync(stamp, 'utf8').trim();
+      const local = /BUILT FROM LOCAL HEAD|not reproducible/i.test(text);
+      const m = text.match(/^Generated from (\S+) @ ([0-9a-f]{7,40})/);
+      record(ch, 'provenance stamp', !local && !!m,
+        local ? `⚠️ "${text.slice(0, 72)}" — names a ref only one machine can resolve; regenerate from the pushed ref`
+              : m ? `${m[1]} @ ${m[2]}`
+                  : `unrecognised stamp: "${text.slice(0, 72)}"`);
+    }
+  }
+
   // 2. Every Dockerfile COPY source is in the build context (blocker #2).
   const df = path.join(dir, 'Dockerfile');
   if (existsSync(df)) {
