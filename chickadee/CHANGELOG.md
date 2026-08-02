@@ -4,6 +4,18 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.5 — 2026-08-02
+
+🔴 **The Chickadee panel opens.** On 0.1.4 and earlier it rendered blank — the
+page tried to load six files that this edition removes on purpose, and the error
+stopped it before anything appeared. If you installed Chickadee and got an empty
+panel, this is that.
+
+- The account, credits and scheduled-actions pages are genuinely absent here
+  (there is no account), and the console no longer references them.
+- Two menu items that could never have worked — "Sign Out" and "Delete
+  account…" — are gone rather than sitting there doing nothing.
+
 ## 0.1.4 — 2026-08-02
 
 **A new look.** Chickadee's mark is now orange. Nothing else changed — no

@@ -77,22 +77,10 @@ const TopBar = {
                         border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                         z-index: 1050; overflow: hidden;">
                 ${subscribeRow}
-                <button onclick="TopBar.closeMenu(); App.navigate('account')"
-                        style="width: 100%; text-align: left; padding: 10px 14px; background: none;
-                               border: none; cursor: pointer; font-size: 14px; color: var(--text-primary);">
-                    Account Settings
                 </button>
                 <div style="height: 1px; background: var(--border, #e5e7eb);"></div>
-                <button onclick="TopBar.closeMenu(); AccountPage.signOut()"
-                        style="width: 100%; text-align: left; padding: 10px 14px; background: none;
-                               border: none; cursor: pointer; font-size: 14px; color: var(--text-primary);">
-                    Sign Out
                 </button>
                 <div style="height: 1px; background: var(--border, #e5e7eb);"></div>
-                <button onclick="TopBar.closeMenu(); App.navigate('account'); setTimeout(() => AccountPage.handleDeleteAccount && AccountPage.handleDeleteAccount(), 100);"
-                        style="width: 100%; text-align: left; padding: 10px 14px; background: none;
-                               border: none; cursor: pointer; font-size: 14px; color: var(--status-error, #c00);">
-                    Delete account…
                 </button>
             </div>
         `;

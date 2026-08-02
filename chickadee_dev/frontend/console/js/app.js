@@ -26,9 +26,6 @@ const App = {
         photos:        { page: typeof PhotosPage        !== 'undefined' ? PhotosPage        : null },
         // Core pages (present in every build)
         'voice-ai':    { page: VoiceAiPage },
-        'scheduled-actions': { page: ScheduledActionsPage },
-        account:       { page: AccountPage },
-        credits:       { page: CreditsPage },
         'api-keys':    { page: ApiKeysPage },
         'local-engines': { page: LocalEnginesPage },
     },
@@ -998,23 +995,6 @@ const App = {
         this._resetContentScroll();
     },
 
-    /**
-     * Render the locked stub: real sidebar (so the user can leave), a top bar
-     * with no refresh affordance (there is no page object to refresh), and the
-     * AccountRequiredPanel in place of the page.
-     */
-    _renderLockedPage(page) {
-        document.getElementById('sidebar').innerHTML = Sidebar.render(page);
-        // showRefresh=false: refreshCurrentPage() would reach into this.pages
-        // and call the very module this state exists to keep from running.
-        document.getElementById('top-bar').innerHTML =
-            TopBar.render(AccountRequiredPanel.title(page), '', false);
-        document.getElementById('content').innerHTML = AccountRequiredPanel.render(page);
-        // Account-scoped banners (deletion, expired) are already '' with no
-        // account; the integration-restart banner is add-on state and still applies.
-        const gb = document.getElementById('global-banner');
-        if (gb) gb.innerHTML = this._integrationRestartBannerHtml();
-    },
 
     /**
      * Jump straight into account CREATION. Reuses the signup mode that already

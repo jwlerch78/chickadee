@@ -7,6 +7,11 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.5 — 2026-08-02
+
+The console panel opens: dropped modules were still referenced by index.html and
+the route table, so the SPA threw before rendering. See the prod changelog.
+
 ## 0.1.4 — 2026-08-02
 
 The orange mark. Images only.
