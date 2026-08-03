@@ -105,6 +105,48 @@ print("\\n".join(bad))`;
     record(ch, 'yaml parses', !out, out || `${yamls.length} file(s)`);
   }
 
+  // 1a. 🔴 COMMITTED — verify the tree GIT WILL SHIP, not the tree on disk.
+  //
+  //     Every other leg in this file reads the working tree, which is the same
+  //     thing as the shipped tree right up until it isn't. The release path
+  //     vendors via `git archive` and reads COMMITTED state (BRAND_SYNC_CONTRACT:
+  //     "every step reads committed state"), so an untracked file is invisible to
+  //     the release and fully present to every check here.
+  //
+  //     🔴 That is not hypothetical: 0.1.8 was committed with `git commit -- <dirs>`,
+  //     which stages tracked MODIFICATIONS and silently ignores NEW files. Two
+  //     generated files stayed untracked while the same commit added the lines
+  //     that reference them — an `index.html` <script> whose target 404s, and a
+  //     `require()` that throws at boot. Every static check here came back green,
+  //     because the files were on disk.
+  //
+  //     It is the 0.1.5 ship-blocker mirrored: that one was a REFERENCE WITH NO
+  //     FILE, this one is a FILE WITH NO COMMIT. Same channel, same blindness —
+  //     a checker that looks at the tree it can see.
+  {
+    let dirty = '';
+    try {
+      dirty = execFileSync('git', ['status', '--porcelain', '--', ch],
+        { cwd: repoRoot, encoding: 'utf8' }).trim();
+    } catch (e) {
+      record(ch, 'committed', true, `⏭️ n/a — not a git work tree (${e.message.slice(0, 40)})`);
+      dirty = null;
+    }
+    if (dirty !== null) {
+      // Untracked (`??`) is the dangerous one — it ships as ABSENT. A tracked
+      // modification is reported too: it means the shipped bytes are not the
+      // bytes just verified, which is the same lie in a quieter voice.
+      const lines = dirty ? dirty.split('\n') : [];
+      const untracked = lines.filter((l) => l.startsWith('??'));
+      const modified = lines.filter((l) => !l.startsWith('??'));
+      const parts = [];
+      if (untracked.length) parts.push(`${untracked.length} UNTRACKED (ship as MISSING): ${untracked.map((l) => l.slice(3)).join(', ')}`);
+      if (modified.length) parts.push(`${modified.length} uncommitted change(s): ${modified.map((l) => l.slice(3)).join(', ')}`);
+      record(ch, 'committed', lines.length === 0,
+        parts.join(' · ') || 'every file in this channel is committed');
+    }
+  }
+
   // 1b. 🔴 PROVENANCE — the GENERATED stamp must name a ref someone else can resolve.
   //
   //     Put here rather than written a
