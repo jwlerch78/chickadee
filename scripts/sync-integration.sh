@@ -8,6 +8,26 @@
 # divergent copy), and nothing filled the gap, so the store ingested both
 # channels and every install then failed at the image build.
 #
+# ── ONE SLOT, AND THAT IS DELIBERATE (ruled 2026-08-03) ──────────────────────
+#
+# This vendors the VOICE integration and only that. `integration-installer.js`
+# enforces the same shape — it expects exactly one vendored package and DROPs
+# loudly on zero OR two.
+#
+# 🔴 Do not "fix" that by plural-ising it. The DEVICE integration (dashie /
+# chickadee, the one that provides per-device entities and the Devices page's
+# roster) is distributed through **HACS** in BOTH editions and is vendored by
+# neither. The split is the point:
+#
+#   voice   must version-match the add-on — the #65 lease wire is co-versioned,
+#           which verify-channels' "vendored vintage" leg asserts. It cannot be
+#           allowed to drift, so it travels WITH the add-on.
+#   device  has no such coupling and rides its own HACS release cadence.
+#
+# One slot, for the integration that must not drift. This was measured and ruled
+# after an empty Devices roster on a test VM looked like a Chickadee vendoring
+# gap; it was not — Chickadee vendors exactly what Dashie vendors.
+#
 # COMMITTED-TREE ONLY, via `git archive origin/<ref>`: what gets vendored is what
 # is pushed, never a dirty working tree. A vendored tree whose SHA nobody else can
 # resolve is a provenance claim that cannot be checked — the same rule brand-gen

@@ -27,6 +27,17 @@ have already set up. Fill them in only if you want something different.
 
 That is the whole requirement. Everything else has a working default.
 
+**Optional: the Dashboards page.** The add-on's panel can list your tablets —
+which are online, and their settings — but that list comes from the **Chickadee
+integration**, which is a separate install from HACS. Without it the Dashboards
+page is simply empty; voice works either way. Install it from HACS, then add each
+tablet to it.
+
+⚠️ That is a *different* component from the Chickadee **Voice** integration the
+add-on installs for you (see `install_integration` below). One is bundled because
+it has to match this add-on version; the other is independent and rides its own
+release cadence.
+
 ---
 
 ## Setup
