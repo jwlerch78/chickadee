@@ -139,9 +139,17 @@ print("\\n".join(bad))`;
       const lines = dirty ? dirty.split('\n') : [];
       const untracked = lines.filter((l) => l.startsWith('??'));
       const modified = lines.filter((l) => !l.startsWith('??'));
+      // Strip the STATUS field by shape, not by a fixed width. `slice(3)` looked
+      // right — porcelain is `XY <path>` — but git emits ` M path` with a LEADING
+      // space for worktree-only changes, so the path began at index 3 for some
+      // statuses and index 2 for others, and the message silently reported
+      // "hickadee/CHANGELOG.md". A gate that prints a path one character short
+      // sends the reader to a file that does not exist, which is worse than
+      // printing nothing.
+      const pathOf = (l) => l.replace(/^\s*\S{1,2}\s+/, '');
       const parts = [];
-      if (untracked.length) parts.push(`${untracked.length} UNTRACKED (ship as MISSING): ${untracked.map((l) => l.slice(3)).join(', ')}`);
-      if (modified.length) parts.push(`${modified.length} uncommitted change(s): ${modified.map((l) => l.slice(3)).join(', ')}`);
+      if (untracked.length) parts.push(`${untracked.length} UNTRACKED (ship as MISSING): ${untracked.map(pathOf).join(', ')}`);
+      if (modified.length) parts.push(`${modified.length} uncommitted change(s): ${modified.map(pathOf).join(', ')}`);
       record(ch, 'committed', lines.length === 0,
         parts.join(' · ') || 'every file in this channel is committed');
     }
