@@ -7,6 +7,22 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.14 — 2026-08-04
+
+**Fixes the per-device sharing line, which 0.1.12 announced and never actually
+showed you.**
+
+0.1.12 said each device card would tell you whether that tablet is using your
+voice & AI. It didn't — the line was only wired into the simpler card layout, so
+anyone using the detailed view (which is the default for Home Assistant users)
+never saw it. The line was being worked out correctly and then dropped on the
+floor. It now shows in both layouts.
+
+**The Chickadee logo in the sidebar is larger.** Same logo, same shape — the
+image file carried a lot of invisible padding around the edges, which was eating
+about a quarter of the space it had. Trimming that makes the mark noticeably
+bigger without changing anything else.
+
 ## 0.1.13 — 2026-08-04
 
 **Nothing you can see — groundwork for a Home Assistant safety check.**
