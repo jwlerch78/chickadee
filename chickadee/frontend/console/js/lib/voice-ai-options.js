@@ -54,10 +54,10 @@ const VoiceAiOptions = {
     // BYO AI key (add-on API Keys page) — gated by the page, never a
     // silent charge.
     PRESETS: [
-        { id: 'cloud', label: 'Cloud', locality: 'cloud', cost: 'Uses credits', needsCreditsOrKey: true,
+        { id: 'cloud', label: 'Cloud', locality: 'cloud', cost: 'Uses your AI key', needsCreditsOrKey: true,
           tagline: 'Best quality, zero setup',
           description: 'Anonymized cloud AI and voices, ready out of the box.' },
-        { id: 'hybrid', label: 'Hybrid', locality: 'mixed', cost: 'Credits or your AI key', needsCreditsOrKey: true,
+        { id: 'hybrid', label: 'Hybrid', locality: 'mixed', cost: 'Your AI key', needsCreditsOrKey: true,
           tagline: 'Cloud AI · local voice',
           // Two-tone tagline: the cloud half renders in the cloud swatch, the
           // local half in the local swatch (picker falls back to `tagline`).

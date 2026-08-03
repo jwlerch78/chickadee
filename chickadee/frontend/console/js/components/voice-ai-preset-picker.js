@@ -68,7 +68,7 @@ const VoiceAiPresetPicker = {
         // works on the box with no account at all, which is the point.
         const prompt = available ? '' : (localMode ? `
             <div style="font-size: 11px; color: var(--text-muted, #777); margin-top: auto; padding-top: 8px; line-height: 1.4; opacity: 1;">
-                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); App.startSignIn()" style="color: var(--accent); font-weight: 600;">Sign in</a> or add your own <a href="#" onclick="event.preventDefault(); event.stopPropagation(); App.navigate('api-keys')" style="color: var(--accent); font-weight: 600;">AI key</a> →
+                Add your own <a href="#" onclick="event.preventDefault(); event.stopPropagation(); App.navigate('api-keys')" style="color: var(--accent); font-weight: 600;">AI key</a> →
             </div>` : `
             <div style="font-size: 11px; color: var(--status-error, #c00); margin-top: auto; padding-top: 8px; line-height: 1.4; opacity: 1;">
                 Add <a href="#" onclick="event.preventDefault(); event.stopPropagation(); App.navigate('credits')" style="color: var(--accent); font-weight: 600;">credits</a> or <a href="#" onclick="event.preventDefault(); event.stopPropagation(); App.navigate('api-keys')" style="color: var(--accent); font-weight: 600;">AI keys</a> →
