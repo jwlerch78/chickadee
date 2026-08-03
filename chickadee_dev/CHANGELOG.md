@@ -7,6 +7,21 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.12 — 2026-08-03
+
+**Each device card now says whether that tablet is using your voice & AI right
+now.**
+
+0.1.11 put a line on the Voice & AI page for the household as a whole. This adds
+the same thing per device: open Dashboards and a card shows what that tablet is
+currently drawing on.
+
+It appears **only while that device is actually leasing** — if a tablet stops, or
+you restart the add-on, the line simply disappears rather than telling you
+something that has stopped being true. An absent line means "not currently
+observed", which is not the same as "not shared", and the page will not pretend
+otherwise.
+
 ## 0.1.11 — 2026-08-03
 
 **Voice & AI now tells you what is actually being shared — not just what the
