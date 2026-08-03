@@ -7,6 +7,24 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.10 — 2026-08-03
+
+**The Devices page now tells you why it is empty, and what to do about it.**
+
+0.1.9 put Devices in the sidebar. If you went there and found nothing, the page
+said "No devices registered yet" and then told you to sign in — which this
+edition has no way to do. It now says the real thing: devices appear once Home
+Assistant has the Chickadee integration, you install that from HACS, and there
+is no account to sign in to.
+
+That integration is a **separate install** from the Chickadee **Voice**
+integration the add-on sets up for you — a distinction nothing previously
+explained. The add-on documentation now covers it under "What you need".
+
+*Also in this build, with nothing you can see:* the add-on records which Home
+Assistant service calls a stricter policy **would** refuse, without refusing
+any of them. It is there to gather evidence before anything is enforced.
+
 ## 0.1.9 — 2026-08-03
 
 **The Devices page is now reachable.**

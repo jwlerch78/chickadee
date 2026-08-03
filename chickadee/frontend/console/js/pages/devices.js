@@ -691,10 +691,36 @@ const DevicesPage = {
                 ${DevicesClaim.renderBanner()}
                 <div class="empty-state">
                     <div class="empty-state-icon">📱</div>
-                    <div class="empty-state-text">No devices registered yet.</div>
+                    <div class="empty-state-text">No devices yet.</div>
                     <div style="color: var(--text-muted); font-size: var(--font-size-sm); margin-top: 8px;">
-                        Sign in to ${BRAND.productName} on a tablet or Fire TV to register it — or, if HA
-                        sees one of your devices, add it from the banner above.
+                        ${this._localMode
+                            // 🔴 The account-mode copy is WRONG TWICE on an account-less box: it
+                            // tells the user to "sign in" to an edition that has no accounts, and
+                            // points at the "banner above", which is the claim banner — also
+                            // account-only. Instructing someone to do a thing their build does not
+                            // offer is worse than saying nothing, because they go looking for it.
+                            //
+                            // ⚠️ Written to be true in EVERY branch of the open question about how
+                            // the device integration reaches a box: it names the CONDITION (Home
+                            // Assistant reports the device) and the likeliest cause of absence,
+                            // without promising a path that may not exist yet.
+                            // 🔴 This string is the ONLY place a user learns that the device
+                            // integration is a separate install (ruled 2026-08-03: keep HACS
+                            // distribution, fix the copy). So it names the requirement, the
+                            // integration, and where to get it — an empty page with an honest
+                            // shrug was the previous version and it left them nowhere to go.
+                            //
+                            // ⚠️ `BRAND.productName` is correct here and is not a guess: the
+                            // integration's HACS entry is named with the product name in BOTH
+                            // editions (`hacs.json` → "Chickadee" / "Chickadee"), so this resolves
+                            // per brand with no second holder to keep in step. If the HACS entry
+                            // is ever renamed away from the product name, THIS is the string that
+                            // starts lying — cheap to fix, worth knowing where it lives.
+                            ? `Devices appear here once Home Assistant has the ${BRAND.productName}
+                               integration — install it from HACS, then add each tablet to it.
+                               There is no account to sign in to.`
+                            : `Sign in to ${BRAND.productName} on a tablet or Fire TV to register it — or, if HA
+                               sees one of your devices, add it from the banner above.`}
                     </div>
                 </div>
                 ${this._renderDismissedSection([])}

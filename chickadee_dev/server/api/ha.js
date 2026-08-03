@@ -23,6 +23,7 @@ const haWorker = require('../ha-worker');
 const haClient = require('../ha-client');
 const config = require('../config');
 const { requireIngressUser } = require('../require-ingress-user');
+const servicePolicy = require('../ha-service-policy');
 
 const router = express.Router();
 
@@ -427,6 +428,22 @@ router.post('/service', requireIngressUser('ha-service'), express.json(), async 
         // — peel entity_id out of `data` for the target field.
         const serviceData = { ...payload };
         delete serviceData.entity_id;
+        // 🔴 SERVICE POLICY (D-status s49). Service-level, not domain-level: the
+        // domain allowlist below already contains `lock`, so a domain check
+        // permits `lock.open`. Ships in OBSERVE mode — the decision is logged and
+        // NOT applied until `service_policy_enforce` is set, because the caller is
+        // an LLM and the service set it uses in the field is not knowable from
+        // here. Harvest, widen, then flip.
+        const verdict = servicePolicy.evaluate(domain, service);
+        if (verdict.reason !== 'ok') {
+            console.warn(
+                `DROP: service-would-refuse service=${domain}.${service} reason=${verdict.reason} ` +
+                `enforcing=${verdict.enforcing} by=${req.haUser.id}`,
+            );
+            if (!verdict.allowed) {
+                return res.json({ success: false, error: `service_not_allowed: ${domain}.${service}` });
+            }
+        }
         // 🔴 ATTRIBUTION. This route can call ANY HA service with the add-on's
         // supervisor token, and until now it logged only failures — so a
         // successful `lock.open` left no record of who asked for it. The caller
@@ -631,9 +648,23 @@ async function findMediaEntity(dashieDeviceId, role) {
 // apply to these particular routes — if the question is ever reopened, that is
 // the fact that changes the answer.
 //
-// 🔴 The residual, ruled and not to be re-litigated: ungated means anyone who can
-// reach :8099 on the LAN can pull camera frames without HA credentials, since the
-// add-on proxies them with its own token. Guests-on-wifi exposure, not remote.
+// 🔴 The residual, ruled and not to be re-litigated — CORRECTED 2026-08-03 after
+// it was measured rather than assumed. The first version of this comment said
+// "anyone who can reach :8099 on the LAN", which OVERSTATED it:
+//
+//   `ports: {}`, no `host_network`, and `docker port` lists nothing → the port is
+//   published to NEITHER the host NOR the LAN. Realistic reach is another add-on
+//   on the same box, or host root — not guests on the wifi, not the internet.
+//
+// So: ungated means an entity on the Supervisor docker network can pull camera
+// frames without HA credentials, because the add-on proxies them with its own
+// token. Home Assistant's own model treats add-ons as semi-trusted, so this is a
+// real but BOUNDED exposure.
+//
+// ⚠️ The correction matters more than the wording: this is the sentence someone
+// reads when deciding whether to revisit the ruling, and **an inflated threat
+// model produces a wrong decision as surely as a deflated one.**
+//
 // **If revisited, the shape is device-token auth for kiosks, not an ingress
 // gate** — noted so the option is discoverable without re-deriving it.
 router.get('/mjpeg/:deviceId/:role', requireSignedIn, async (req, res) => {
