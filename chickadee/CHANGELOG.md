@@ -4,6 +4,24 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.13 — 2026-08-04
+
+**Nothing you can see — groundwork for a Home Assistant safety check.**
+
+The add-on records which Home Assistant service calls a stricter policy *would*
+refuse, without refusing any of them. Testing on a real box showed that policy
+was too narrow in two ways, so this widens it before it is ever switched on:
+ordinary controls it would have blocked (playing music, volume steps, climate
+presets, robot vacuums and similar) are now recognised, and — the important one
+— **your own scripts and scenes are too.**
+
+That last one was structural rather than an oversight. Home Assistant runs a
+script under its own name, so a policy listing only the generic "run a script"
+action would have refused every script you have ever written, whatever you
+called it. It now understands that `script.goodnight` *is* running a script.
+
+Still recording only. Nothing is refused.
+
 ## 0.1.12 — 2026-08-03
 
 **Each device card now says whether that tablet is using your voice & AI right
