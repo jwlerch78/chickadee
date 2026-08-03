@@ -186,7 +186,14 @@ router.get('/history', async (req, res) => {
  * Console is responsible for calling update_device first/separately to
  * also update Supabase — this endpoint only handles the HA side.
  */
-router.post('/rename', requireSignedIn, express.json(), async (req, res) => {
+// Ingress-gated (§W). 🔴 My own spec was WRONG about this route: W5 filed it as
+// "persists to Supabase … a different mechanism, not a different gate". It does
+// not. `haRegistry.renameDevice` writes HOME ASSISTANT's device registry; the
+// Supabase copy refreshes later as a side effect of the poll it triggers. So this
+// is the same shape as /control — an HA operation behind an account gate — and on
+// the account-less edition it was refusing to rename a device that HA would let
+// the same user rename from its own UI.
+router.post('/rename', requireIngressUser('ha-rename'), express.json(), async (req, res) => {
     const { device_id, new_name } = req.body || {};
     if (!device_id || typeof device_id !== 'string') {
         return res.status(400).json({ error: 'device_id required' });
@@ -199,6 +206,10 @@ router.post('/rename', requireSignedIn, express.json(), async (req, res) => {
     }
 
     try {
+        console.log(
+            `RENAME: device=${device_id} to="${new_name.trim()}" ` +
+            `by=${req.haUser.id}${req.haUser.display_name ? ` (${req.haUser.display_name})` : ''}`,
+        );
         const updated = await haRegistry.renameDevice(device_id, new_name.trim());
         // Trigger an immediate metrics poll so user_devices.metrics + ha_device_name
         // refresh without waiting for the next 30s tick.
@@ -599,6 +610,32 @@ async function findMediaEntity(dashieDeviceId, role) {
  *
  * Closes cleanly when the client disconnects (e.g. user closes the modal).
  */
+// ── THE MEDIA ROUTES STAY AS THEY ARE — a DECISION, not an omission ──────────
+//
+// /mjpeg, /image, /stream, /hls were the one §W group left ungated-by-ingress.
+// John ruled 2026-08-03: **do not gate them.** Written here because a future
+// reader will otherwise see the inconsistency with /control and /service and
+// "fix" it.
+//
+// His reason was field knowledge: tablets display video feeds and are NOT
+// ingress callers, so an ingress gate would trade a beta-visible outage for a
+// hardening.
+//
+// ⚠️ MEASURED REFINEMENT, recorded so nobody inherits a rationale that was never
+// checked: the tablet's video feeds do not travel these routes. They ride
+// `/api/chickadee/feeds` and `/api/chickadee/frigate/cameras` (`ApiPaths.HA` — the
+// INTEGRATION's router; see VideoFeedPreferences.kt / FrigateCameraFetcher.kt).
+// These four are consumed by the CONSOLE's device cards (devices-card.js:381+,
+// screenshots and camera panels). No Android or web-app caller for them exists.
+// So the ruling stands and costs nothing, but the stated mechanism does not
+// apply to these particular routes — if the question is ever reopened, that is
+// the fact that changes the answer.
+//
+// 🔴 The residual, ruled and not to be re-litigated: ungated means anyone who can
+// reach :8099 on the LAN can pull camera frames without HA credentials, since the
+// add-on proxies them with its own token. Guests-on-wifi exposure, not remote.
+// **If revisited, the shape is device-token auth for kiosks, not an ingress
+// gate** — noted so the option is discoverable without re-deriving it.
 router.get('/mjpeg/:deviceId/:role', requireSignedIn, async (req, res) => {
     const { deviceId, role } = req.params;
     if (role !== 'screenshot' && role !== 'camera') {
@@ -882,7 +919,11 @@ async function _ensureStateChangedFanout() {
     });
 }
 
-router.get('/events', requireSignedIn, async (req, res) => {
+// Ingress-gated (§W). Also mis-filed in W5 as "Supabase-fed": it is a fan-out of
+// Home Assistant's own `state_changed`, with no Supabase anywhere in the path.
+// Without it the account-less Devices page has no real-time updates at all and
+// falls back to the 30s poll, which is a visibly worse page for no reason.
+router.get('/events', requireIngressUser('ha-events'), async (req, res) => {
     res.set({
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',

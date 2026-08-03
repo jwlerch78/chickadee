@@ -1,5 +1,5 @@
 name: Chickadee
-version: "0.1.8"
+version: "0.1.9"
 # 🔴 SLUG IS IMMUTABLE ONCE SHIPPED. A slug change is a different add-on with an
 # orphaned /data directory. `chickadee` here, `chickadee_dev` on the dev channel.
 #

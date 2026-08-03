@@ -7,6 +7,17 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.9 — 2026-08-03
+
+**The Devices page is now reachable.**
+
+0.1.8 made the Devices page work without an account, and then did not show it to
+you: the page shipped inside the add-on but was still switched off for this
+edition, so nothing you could click ever reached it. It is on now — you will find
+Devices in the sidebar.
+
+The page you land on has not changed; Voice & AI is still the home screen.
+
 ## 0.1.8 — 2026-08-03
 
 **The Devices page works without a Dashie account — it lists your dashboards and
