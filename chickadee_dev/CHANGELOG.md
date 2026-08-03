@@ -7,6 +7,23 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.11 — 2026-08-03
+
+**Voice & AI now tells you what is actually being shared — not just what the
+switch is set to.**
+
+The Shared voice & A.I. card has always shown a button reading "Sharing On" or
+"Sharing Off". That is the setting. It is not the same as what a tablet or voice
+satellite would actually be granted if it asked right now — sharing can be on
+while nothing is configured to share, and the button looks identical either way.
+
+A line under the switch now says which it is: that your Home Assistant's AI keys
+are in use, that its built-in voice is, that sharing is off for this device, or
+that no AI keys are set up and where to add them.
+
+If the add-on cannot work the answer out, it says **nothing** rather than
+guessing — an empty line there means "could not tell", never "nothing is shared".
+
 ## 0.1.10 — 2026-08-03
 
 **The Devices page now tells you why it is empty, and what to do about it.**
