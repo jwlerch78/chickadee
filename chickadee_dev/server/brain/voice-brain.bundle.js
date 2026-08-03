@@ -5,7 +5,7 @@
    Built from this channel's OWN server/brain/src/ — not copied, and not
    text-substituted from another brand's bundle. See scripts/build-brain.mjs
    for why that distinction matters.
-   Built from: dashie-ha-console @ cd6496a
+   Built from: dashie-ha-console @ 491f3bf
    Regenerate:  node scripts/build-brain.mjs
    ============================================================ */
 var __defProp = Object.defineProperty;
@@ -26,7 +26,7 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// chickadee/server/brain/src/voice-conversation/orchestrator.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/orchestrator.ts
 var orchestrator_exports = {};
 __export(orchestrator_exports, {
   looksLikeSportsAsk: () => looksLikeSportsAsk,
@@ -39,7 +39,7 @@ __export(orchestrator_exports, {
 });
 module.exports = __toCommonJS(orchestrator_exports);
 
-// chickadee/server/brain/src/voice-conversation/templates.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/templates.ts
 var BASE_CONTEXT = `# Base Context
 
 You are generating responses for a voice-controlled family assistant. Your output will be spoken aloud directly to the user.
@@ -1771,7 +1771,7 @@ function fmtInZone(now, timeZone) {
   return `${date}, ${time}`;
 }
 
-// chickadee/server/brain/src/voice-conversation/personality-prompt-builder.js
+// ../chickadee/chickadee/server/brain/src/voice-conversation/personality-prompt-builder.js
 function buildPersonalityPrompt(personality) {
   if (!personality) {
     return { responsePrefix: "", responseSuffix: "" };
@@ -1850,7 +1850,7 @@ function hasStructuredFields(personality) {
   return !!(personality.personality_overview || personality.similar_persona || personality.adjectives && personality.adjectives.length > 0 || personality.topics && personality.topics.length > 0 || personality.example_phrases && personality.example_phrases.length > 0);
 }
 
-// chickadee/server/brain/src/voice-conversation/prompt.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/prompt.ts
 var INQUIRY_BY_TYPE = {
   "home-assistant": INQUIRY_HOME_ASSISTANT,
   "web-search": INQUIRY_WEB_SEARCH,
@@ -2104,7 +2104,7 @@ IMAGE DISPLAY IS UNAVAILABLE: always set "image": null, and never say you are sh
   return prompt;
 }
 
-// chickadee/server/brain/src/voice-conversation/redact-args.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/redact-args.ts
 var PASS_KEYS = /* @__PURE__ */ new Set([
   "time_range",
   "mode",
@@ -2189,7 +2189,7 @@ async function redactToolArgs(args) {
   return await redactValue(null, args);
 }
 
-// chickadee/server/brain/src/voice-conversation/multi.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/multi.ts
 var ACTION_TOOLS = /* @__PURE__ */ new Set(["home_assistant", "music", "video_feeds"]);
 function validSteps(raw) {
   if (!Array.isArray(raw)) return [];
@@ -2244,7 +2244,7 @@ function normalizeMultiEnvelope(parsed) {
   return { type: "multi", voice: parsed.voice, steps: [] };
 }
 
-// chickadee/server/brain/src/voice-conversation/parse.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/parse.ts
 function parseContent(content) {
   if (!content || typeof content !== "string") return null;
   let body = content.trim();
@@ -2398,7 +2398,7 @@ function repairTruncatedJson(s) {
   return prefix + closers;
 }
 
-// chickadee/server/brain/src/voice-conversation/dialog-policy.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/dialog-policy.ts
 var NOISE_REPLY = "Sorry, I didn't catch that.";
 var END_INTENT_PHRASES = [
   "thanks",
@@ -2449,7 +2449,7 @@ function classifyMiss(route, voice) {
   return { miss: false, reason: null };
 }
 
-// chickadee/server/brain/src/voice-conversation/models.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/models.ts
 function providerForModel(modelId) {
   if (!modelId || typeof modelId !== "string") return "claude";
   const id = modelId.toLowerCase();
@@ -2460,7 +2460,7 @@ function providerForModel(modelId) {
   return "claude";
 }
 
-// chickadee/server/brain/src/voice-conversation/force-search.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/force-search.ts
 var ROLE_WORDS = [
   "president",
   "vice president",
@@ -2549,7 +2549,7 @@ function detectMutableEntity(text) {
   return null;
 }
 
-// chickadee/server/brain/src/_shared/tools/sports-slate.ts
+// ../chickadee/chickadee/server/brain/src/_shared/tools/sports-slate.ts
 var MAX_SLATE = 60;
 var STATE_RANK = { in: 0, pre: 1, post: 2 };
 function compareGames(a, b) {
@@ -2677,7 +2677,7 @@ function templateSlate(result, query, opts) {
   return { voice: slateVoice(sorted, query, tz), structured_data: card2 };
 }
 
-// chickadee/server/brain/src/_shared/tools/sports.ts
+// ../chickadee/chickadee/server/brain/src/_shared/tools/sports.ts
 function envVar(key) {
   try {
     const d = globalThis.Deno;
@@ -2941,7 +2941,7 @@ function templateSports(result, query, opts) {
   return { voice, text, structured_data: card(game, state, tz) };
 }
 
-// chickadee/server/brain/src/_shared/tools/image_search.ts
+// ../chickadee/chickadee/server/brain/src/_shared/tools/image_search.ts
 function envVar2(key) {
   try {
     const d = globalThis.Deno;
@@ -3011,7 +3011,7 @@ async function synthesizeImage(query, criteria, ctx) {
   };
 }
 
-// chickadee/server/brain/src/voice-conversation/personality.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/personality.ts
 var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function listAvailablePersonalities(supabase) {
   const { data, error } = await supabase.from("personality_templates").select("key, name, description, is_seasonal, seasonal_start, seasonal_end, voice_mode, voice, greeting_fallback").eq("is_available", true).order("sort_order", { ascending: true });
@@ -3063,7 +3063,7 @@ async function readDevicePersonalityId(supabase, userId, endpointId) {
   return ai?.defaultPersonalityId || ai?.personality_id || null;
 }
 
-// chickadee/server/brain/src/_shared/tools/current_time.ts
+// ../chickadee/chickadee/server/brain/src/_shared/tools/current_time.ts
 var currentTimeTool = {
   name: "get_current_time",
   description: `Get the CURRENT local date, time, and day of week for the user. Call this for any question about the current time, date, or day ("what time is it", "what's today's date", "what day is it"), and to anchor any today/tomorrow/this-week/next reasoning. It is authoritative \u2014 use it instead of your own internal clock, which is UTC and wrong for the user. Read the date/time back in the user's local zone; never say UTC.`,
@@ -3094,7 +3094,7 @@ var currentTimeTool = {
   }
 };
 
-// chickadee/server/brain/src/voice-conversation/retention.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/retention.ts
 function retainFields(persist, userText, responseText, subtext) {
   if (!persist) return {};
   return {
@@ -3104,7 +3104,7 @@ function retainFields(persist, userText, responseText, subtext) {
   };
 }
 
-// chickadee/server/brain/src/voice-conversation/weather-synth.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/weather-synth.ts
 function wmoToCondition(code) {
   const c = Number(code);
   if (c === 0) return "sunny";
@@ -3266,7 +3266,7 @@ function templateWeather(data, query = {}) {
   return { voice, text: null, card: null };
 }
 
-// chickadee/server/brain/src/voice-conversation/multi-dispatch.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/multi-dispatch.ts
 var ZERO_USAGE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
 function addUsage(a, u) {
   const b = u ?? {};
@@ -3354,7 +3354,7 @@ async function dispatchMultiTurn(steps, deps) {
   return { steps: out, stages, usage, latencyMs };
 }
 
-// chickadee/server/brain/src/voice-conversation/orchestrator.ts
+// ../chickadee/chickadee/server/brain/src/voice-conversation/orchestrator.ts
 var KNOWN_DEVICE_TOOL_DECLINES = {
   // NB: calendar_events is intentionally NOT here — it's now offered to every caller and its
   // decline is self-fulfilled in the calendar branch (a non-claiming kiosk routes to it and gets
@@ -4451,4 +4451,4 @@ function toolMeta(parsed, route, caps) {
   templateCanAnswer,
   wantsGameDetail
 });
-module.exports.BRAIN_SOURCE_SHA = "cd6496a";
+module.exports.BRAIN_SOURCE_SHA = "491f3bf";

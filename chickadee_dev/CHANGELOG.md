@@ -7,6 +7,10 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.16
+
+- Regenerate: the preset cards lose the sign-in and credits vocabulary
+
 ## 0.1.15 — 2026-08-04
 
 **A new option: Refuse risky Home Assistant service calls.**
