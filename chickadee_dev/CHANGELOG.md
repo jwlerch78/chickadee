@@ -7,6 +7,25 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.15 — 2026-08-04
+
+**A new option: Refuse risky Home Assistant service calls.**
+
+Since 0.1.13 the add-on has quietly recorded which Home Assistant service calls
+a stricter policy *would* refuse, without refusing any. Testing on a real box
+confirmed the policy now allows everything ordinary — music, volume, climate
+presets, covers, vacuums, and your own scripts and scenes — while still flagging
+the three genuinely risky ones: unlocking a lock, opening a lock, and disarming
+an alarm.
+
+**You can now turn the refusal on**, per box, in the add-on's Configuration tab:
+`service_policy_enforce`. It ships **off**, and off is the sensible default — the
+add-on can only tell you what it *would* have refused on *your* box, so it is
+worth reading the log first and deciding for yourself. (`ai_auth_enforce` is the
+same kind of switch on the AI authentication path.)
+
+Nothing else changes if you leave both alone.
+
 ## 0.1.14 — 2026-08-04
 
 **Fixes the per-device sharing line, which 0.1.12 announced and never actually
