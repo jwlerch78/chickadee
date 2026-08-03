@@ -7,6 +7,26 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.8 — 2026-08-03
+
+**The Devices page works without a Dashie account — it lists your dashboards and
+shows which are online.**
+
+Chickadee's Devices page is the panel's home screen, and until now it was always
+empty: it asked a cloud account for the list, and there is no account here. It now
+builds the list from Home Assistant itself, which already knows your devices. A
+device that is switched off still appears — under Offline, with its name — rather
+than vanishing or turning into a blank card.
+
+**Device controls work again too.** Screen on/off, volume, brightness, reload,
+restart and the rest were refusing with a sign-in error, because they were checking
+for a cloud account rather than for Home Assistant. Being signed in to Home
+Assistant is what they check now, and each action is recorded in the add-on log with
+the Home Assistant user who took it.
+
+Screenshots and camera views are still unavailable in this edition; they are a
+separate decision, not an oversight.
+
 ## 0.1.7 — 2026-08-02
 
 **If you installed Chickadee before today, your voice integration had quietly
