@@ -30,7 +30,7 @@ const BRAND = {
     productName: 'Chickadee',           // the product/account ("Your Chickadee account")
     consoleName: 'Chickadee',   // tab title + login heading
     assistantName: 'Chickadee',         // the voice persona ("Chickadee said …", "Ask Chickadee")
-    wakePhrase: 'Hey Chickadee',        // display only — wake-word IDs stay 'hey_dashie'
+    wakePhrase: 'Chickadee',        // display only — wake-word IDs stay 'hey_dashie'
     cloudName: 'Chickadee',       // display label for the `dashie_cloud` engine
 
     teamName: 'the Chickadee project',

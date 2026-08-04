@@ -40,6 +40,7 @@ const VoiceAiPage = {
     // (household sharing is now the ACCOUNT setting voice.householdSharing — it rides in
     //  _defaults with the other account defaults; the old per-instance _sharing fetch is gone)
     _templates: null,       // built-in personality rows
+    _templatesError: null,  // why the built-ins could not be read — NOT the same as "none"
     _custom: null,          // custom personality rows
     _overrides: null,       // {template_key: {family_notes}}
     _loading: false,
@@ -321,8 +322,21 @@ const VoiceAiPage = {
     },
 
     async _fetchPersonalities() {
+        // 🔴 `.catch(() => [])` on the TEMPLATE fetch is the failure this whole
+        // unit exists to undo. An account-less box used to render an empty
+        // personality list *correctly and permanently* — the page asked an
+        // account-backed question and the catch turned "nobody answered" into
+        // "you have none". Templates now come from the box, and a failure to
+        // read them is reported as a failure rather than as an empty household.
+        // The other two legitimately default to empty: a household really can
+        // have no custom personalities and no overrides.
+        this._templatesError = null;
         const [templates, custom, overrides] = await Promise.all([
-            VoiceAiApi.listTemplates().catch(() => []),
+            VoiceAiApi.listTemplates().catch((e) => {
+                console.warn(`DROP: personality templates unavailable — ${e?.message || e}`);
+                this._templatesError = e?.message || String(e);
+                return [];
+            }),
             VoiceAiApi.listCustom().catch(() => []),
             VoiceAiApi.listOverrides().catch(() => []),
         ]);
@@ -330,6 +344,30 @@ const VoiceAiPage = {
         this._custom = custom;
         this._overrides = {};
         for (const o of overrides) this._overrides[o.template_key] = o;
+        // The key half of the voice join, refreshed alongside the roster it is
+        // used to resolve — one fetch, one place, so a personality's voice state
+        // can never be computed from a key status older than the list.
+        if (window.ProviderAvailability) await window.ProviderAvailability.refresh();
+    },
+
+    /** The voice line for a personality row: the resolved ref, or the degraded
+     *  state.
+     *
+     *  ⚠️ "(voice not available)" is a UI STATE, NEVER A STORED VALUE. It is
+     *  computed here on every render, from live key status, and written
+     *  nowhere. Persisting it would freeze a transient fact — the key may
+     *  arrive tomorrow — the same class as writing "Not shared" off an empty
+     *  observation map.
+     *
+     *  A personality with NO preferred voices is not degraded; it simply uses
+     *  the standard voice, which is what it always meant to do. Only a
+     *  personality that ASKED for voices and got none says so. */
+    _voiceStateFor(p) {
+        const list = Array.isArray(p?.voices) ? p.voices : [];
+        if (!list.length) return '';
+        const A = window.ProviderAvailability;
+        if (!A) return '';
+        return A.resolveVoice(list) ? '' : '(voice not available)';
     },
 
     /** Fetch local voice engine detection (GET /api/voice/engines). Add-on mode
@@ -725,9 +763,9 @@ const VoiceAiPage = {
      *  overridden (e.g. own-box Kokoro/Whisper URLs stay picked). */
     _seedProvider(presetId, stageKey, dottedKey) {
         const O = window.VoiceAiOptions;
-        const all = stageKey === 'tts' ? O.ttsOptions(this._engines) : O.sttOptions(this._engines);
-        const opts = O.presetFilter(presetId, this._haFilter(all)).filter(o => !o.install);
         const current = String(this._defaults[dottedKey] || '');
+        const all = stageKey === 'tts' ? O.ttsOptions(this._engines, current) : O.sttOptions(this._engines, current);
+        const opts = O.presetFilter(presetId, this._haFilter(all)).filter(o => !o.install);
         const has = id => opts.some(o => o.id === id);
         // A saved engine REPLACES the inline local_url/local_stt_url row, so the stored
         // provider value has no matching row id — but it's a perfectly valid local
@@ -934,8 +972,14 @@ const VoiceAiPage = {
     /** The full (unfiltered) option list backing a stage card. */
     _stageOptions(stageKey) {
         const O = window.VoiceAiOptions;
-        if (stageKey === 'tts') return O.ttsOptions(this._engines);
-        if (stageKey === 'stt') return O.sttOptions(this._engines);
+        // The stored provider goes in so a dropped managed-cloud row can still
+        // appear as a residual when it is what this box holds — see
+        // VoiceAiOptions._managedCloudRow. Passing it everywhere the list is
+        // built is what keeps "what is offered" and "what is selected" the same
+        // list; a site that forgot it would resolve the selection to opts[0] and
+        // display an engine the box is not using.
+        if (stageKey === 'tts') return O.ttsOptions(this._engines, this._defaults['voice.ttsProvider']);
+        if (stageKey === 'stt') return O.sttOptions(this._engines, this._defaults['voice.sttProvider']);
         if (stageKey === 'model') return this._modelOptions(this._activePreset());
         return [];
     },
@@ -1482,7 +1526,7 @@ const VoiceAiPage = {
         // engines with a selectable voice (Piper ha_engine / Kokoro local_url).
         // The URL/other fields stay in the card.
         const VOICE_FIELD_KEYS = ['voice.haTtsVoiceId', 'voice.localTtsVoiceId'];
-        const ttsAll = this._applyProbed(filtered('tts', O.ttsOptions(this._engines)));
+        const ttsAll = this._applyProbed(filtered('tts', O.ttsOptions(this._engines, d['voice.ttsProvider'])));
         // A saved engine's row id stands in for the raw provider value, so the card
         // shows "Kokoro (Mac)" rather than the generic "Local TTS (your box)".
         const ttsSelectedId = this._engineRowId('tts') || String(d['voice.ttsProvider']);
@@ -1500,13 +1544,13 @@ const VoiceAiPage = {
         const body = isHaAssist ? `
             ${P.renderHaAssistCard()}
             ${P.renderCustomizeRow(customPipeline, true)}
-            ${showPipeline ? card('Speech-to-text', 'stt', this._applyProbed(filtered('stt', O.sttOptions(this._engines))), sttSelectedId) : ''}
+            ${showPipeline ? card('Speech-to-text', 'stt', this._applyProbed(filtered('stt', O.sttOptions(this._engines, d['voice.sttProvider']))), sttSelectedId) : ''}
             ${showPipeline ? card('Text-to-speech', 'tts', ttsCardOpts, ttsSelectedId) : ''}
             ${showPipeline && voiceField ? this._renderVoiceRow(voiceField, d) : ''}` : `
             ${P.renderCustomizeRow(customPipeline, true)}
             ${card('AI Model', 'model', this._markKeyed(this._applyProbed(this._modelOptions(preset))), this._selectedModelId(agentMode))}
             ${D.renderWakeWordCard({
-                currentId: String(d['ai.defaultWakeWord'] || 'hey_dashie'),
+                currentId: String(d['ai.defaultWakeWord'] || VoiceAiApi.defaultWakeWord()),
                 saving: this._savingKey === 'ai.defaultWakeWord',
             })}
             ${D.renderPersonalityCard({
@@ -1516,7 +1560,7 @@ const VoiceAiPage = {
             })}
             ${isLive ? this._renderLiveVoiceRow(d) : ''}
             ${showPipeline ? this._renderEngineDetectionRow() : ''}
-            ${showStt ? card(isLive ? 'Speech-to-text*' : 'Speech-to-text', 'stt', this._applyProbed(isLive ? this._haFilter(O.sttOptions(this._engines)) : filtered('stt', O.sttOptions(this._engines))), sttSelectedId) + (isLive ? this._renderLiveSttNote() : '') : ''}
+            ${showStt ? card(isLive ? 'Speech-to-text*' : 'Speech-to-text', 'stt', this._applyProbed(isLive ? this._haFilter(O.sttOptions(this._engines, d['voice.sttProvider'])) : filtered('stt', O.sttOptions(this._engines, d['voice.sttProvider']))), sttSelectedId) + (isLive ? this._renderLiveSttNote() : '') : ''}
             ${showPipeline ? card('Text-to-speech', 'tts', ttsCardOpts, ttsSelectedId) : ''}
             ${showPipeline && voiceField ? this._renderVoiceRow(voiceField, d) : ''}
             ${showPipeline ? card('Web search source', 'search', this._markKeyed(searchOptions), searchSelected) : ''}
@@ -2004,7 +2048,17 @@ const VoiceAiPage = {
                 ${custom.length ? `<div style="padding: 12px 16px 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Custom</div>` : ''}
                 ${custom.map(p => this._personalityRow(p, true)).join('')}
                 <div style="padding: 12px 16px 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Built-in</div>
-                ${templates.map(t => this._personalityRow(t, false)).join('')}
+                ${this._templatesError
+                    // An empty built-in list and an unreadable one are different
+                    // answers, and only one of them means "there is nothing
+                    // here". Saying so is the whole correction: the previous
+                    // behaviour rendered the unreadable case as the empty one,
+                    // permanently and without a word.
+                    ? `<div style="padding: 12px 16px 16px; font-size: 13px; color: var(--status-error, #c00);">
+                        Couldn't load the built-in personalities (${this._escape(this._templatesError)}).
+                        <button class="btn btn-secondary btn-sm" style="margin-left: 8px;" onclick="VoiceAiPage.refresh()">Retry</button>
+                       </div>`
+                    : templates.map(t => this._personalityRow(t, false)).join('')}
             </div></div>
         `;
     },
@@ -2014,7 +2068,7 @@ const VoiceAiPage = {
         // Voice name intentionally hidden here — matches the tablet's Voice & AI menu,
         // which doesn't surface the underlying voice on the personality list.
         const notes = isCustom ? '' : this.overrideNotes(p.key || p.id);
-        const subtitle = [p.description || '', notes ? '✏️ family notes set' : '']
+        const subtitle = [p.description || '', notes ? '✏️ family notes set' : '', this._voiceStateFor(p)]
             .filter(Boolean).join(' · ');
 
         const actions = isCustom
