@@ -105,6 +105,25 @@ const banner = `/* ============================================================
 
 const buildOptions = {
   entryPoints: [entry],
+  // 🔴 PIN THE WORKING DIRECTORY, or the bundle's BYTES depend on where the
+  // operator was standing. esbuild writes a `// <path>` comment above each
+  // bundled module, relative to `absWorkingDir` — which defaults to the build
+  // process's cwd. So the same source built from this repo root and from $HOME
+  // produced `// chickadee/server/…` and `// projects/chickadee/chickadee/server/…`
+  // respectively: different bytes, same code.
+  //
+  // The consequence was worse than churn. `--check` diffs the fresh build against
+  // the committed one, so it returned OPPOSITE VERDICTS from different
+  // directories — green from the repo root, "the committed bundle is NOT what
+  // this source builds" from one level up. A gate whose answer depends on the
+  // caller's cwd is not a gate. (Found by S's 1.1.0 execution run, s14;
+  // reproduced here both ways before and after this line.)
+  //
+  // ⚠️ If you ever verify this, use TWO PROCESSES. esbuild's service captures cwd
+  // at startup, so a `process.chdir()` between two builds in ONE process changes
+  // nothing and the defect reads as absent — which is exactly how I first
+  // mis-measured it.
+  absWorkingDir: repoRoot,
   bundle: true,
   format: 'cjs',
   platform: 'node',
