@@ -14,12 +14,48 @@
 // list this file mirrors with. One definition, used to write and to check —
 // a mirror that drifts from its checker is the failure being prevented.
 //
-// Usage:  node scripts/mirror-dev-channel.mjs          (mirror prod → dev)
-//         node scripts/mirror-dev-channel.mjs --check  (report, write nothing)
+// Usage:  node scripts/mirror-dev-channel.mjs                 (mirror prod → dev)
+//         node scripts/mirror-dev-channel.mjs --check         (wires + content)
+//         node scripts/mirror-dev-channel.mjs --check-wires   (the continuous set)
+//         node scripts/mirror-dev-channel.mjs --check-content (the promotion set)
 //
-// The check mode is what CI runs, via verify-channels.mjs. It writes NOTHING —
-// a check that repairs the thing it is checking always passes, and leaves a
-// dirty tree for someone else to commit or `checkout` away.
+// The check modes write NOTHING — a check that repairs the thing it is checking
+// always passes, and leaves a dirty tree for someone else to commit or
+// `checkout` away.
+//
+// ── 🔴 THE SPLIT (2026-08-04, Thread S under John's promotion-split order) ────
+//
+// This file used to answer ONE question — *are the two channels the same?* —
+// and `verify-channels.mjs` asserted it continuously. That was correct while
+// chickadee had no dev→prod promotion split. It is wrong now, and wrong in the
+// worst direction: **it forbids the state the system is designed to be in.**
+//
+// Under the split, `chickadee/` is the generated tree AND the prod channel;
+// `chickadee_dev/` is the frozen record of the last dev release. Between
+// promotions the prod DIRECTORY legitimately leads the dev directory in
+// CONTENT (authoring continues), while the dev VERSION leads the prod VERSION
+// (dev cuts, prod promotes). A byte-sweep asserted continuously goes red on a
+// perfectly correct tree — observed live on the pushed repo at `35ed5da`.
+//
+// So the comparison splits BY QUESTION, not by caller:
+//
+//   compareChannelWires()    slugs · discovery · dev ≥ prod version
+//                            → CONTINUOUS (verify-channels leg 7). These are
+//                              the values two files must agree on at all times;
+//                              each one has broken a real box, and checking
+//                              them only at a promotion is far too late.
+//
+//   compareChannelContent()  the file-set + byte sweep
+//                            → AT PROMOTIONS ONLY (promote-prod.sh). Equality
+//                              of content is true at exactly one instant — the
+//                              moment prod is rebuilt from the dev release it
+//                              claims to promote — which is precisely where
+//                              `dashie-ha-console`'s promotion verify asserts
+//                              it, and the model John said to match.
+//
+// `compareChannels()` remains as the union, because "is the mirror whole right
+// now" is still the right question immediately after `mirror()` runs, where
+// both halves genuinely do hold.
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync, cpSync } from 'node:fs';
 import path from 'node:path';
@@ -54,6 +90,34 @@ export const DEV_CHANNEL = 'chickadee_dev';
  */
 export const PER_CHANNEL_FILES = ['config.yaml', 'CHANGELOG.md'];
 
+/**
+ * 🔴 INVARIANT — `config.yaml` MUST be in PER_CHANNEL_FILES, and this is the
+ * property that makes `mirror()` safe rather than catastrophic.
+ *
+ * Stated because until now it was a **happy accident** (B's finding 3,
+ * 2026-08-04). `mirror()` is a wholesale `rm -rf` + `cpSync` of prod over dev.
+ * The ONLY thing standing between that and the dev channel inheriting prod's
+ * `slug` is this list: the preserve-before-replace loop reads dev's own
+ * config.yaml first and writes it back after. Drop `config.yaml` from the list
+ * — a one-token edit that reads like a simplification — and the very next
+ * mirror gives `chickadee_dev/` the slug `chickadee`. The two channels become
+ * the SAME add-on, installing one replaces the other and inherits its /data,
+ * and slug is immutable once shipped, so it is the one mistake here that cannot
+ * be corrected afterwards.
+ *
+ * A comment saying so would be a wish. This throws.
+ */
+const MUST_BE_PER_CHANNEL = ['config.yaml'];
+for (const f of MUST_BE_PER_CHANNEL) {
+  if (!PER_CHANNEL_FILES.includes(f)) {
+    throw new Error(
+      `mirror-dev-channel: PER_CHANNEL_FILES must contain "${f}" — mirror() is an rm+copy, ` +
+      `and preserving it is the only thing that keeps the dev channel's own slug. See the ` +
+      `invariant note above this check before changing the list.`,
+    );
+  }
+}
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Every file under `dir`, as paths relative to it. */
@@ -72,20 +136,100 @@ export function listFiles(dir, base = dir, out = []) {
   return out;
 }
 
+const bothPresent = (root) => {
+  const prod = path.join(root, PROD_CHANNEL);
+  const dev = path.join(root, DEV_CHANNEL);
+  if (existsSync(prod) && existsSync(dev)) return null;
+  return `${!existsSync(prod) ? PROD_CHANNEL : DEV_CHANNEL}/ is missing — cannot compare`;
+};
+
+const readCfg = (dir) =>
+  existsSync(path.join(dir, 'config.yaml')) ? readFileSync(path.join(dir, 'config.yaml'), 'utf8') : '';
+const cfgSlug = (t) => (t.match(/^slug:\s*(\S+)/m) || [])[1] ?? null;
+const cfgVersion = (t) => (t.match(/^version:\s*"?([^"\s]+)"?/m) || [])[1] ?? null;
+const cfgDiscovery = (t) => {
+  const m = t.match(/^discovery:\s*\n((?:\s*-\s*\S+\n)+)/m);
+  return m ? m[1].split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean).sort() : [];
+};
+const cmpVersion = (a, b) => {
+  const [x, y] = [a, b].map((v) => (v ?? '0').split('.').map((n) => parseInt(n, 10) || 0));
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
+  }
+  return 0;
+};
+
 /**
- * Compare the two channels. Returns a list of problems, empty when the mirror
- * holds. Exported because `verify-channels.mjs` is the one place all the static
- * checks are reported from, and a second reporter is a second thing to keep in
- * step.
+ * THE CONTINUOUS SET — the values the two channels must agree on at ALL times,
+ * promotion or not. `verify-channels.mjs` leg 7 asserts exactly this and
+ * nothing more.
+ *
+ * Every check here is a WIRE: a value that lives in two files and breaks a real
+ * box when they disagree. None of them is a statement about how far apart the
+ * two trees' contents have drifted, which is why none of them goes red when the
+ * split is working as designed.
  */
-export function compareChannels(root = repoRoot) {
+export function compareChannelWires(root = repoRoot) {
+  const missing = bothPresent(root);
+  if (missing) return [missing];
+
   const prod = path.join(root, PROD_CHANNEL);
   const dev = path.join(root, DEV_CHANNEL);
   const problems = [];
+  const [pt, dt] = [readCfg(prod), readCfg(dev)];
 
-  if (!existsSync(prod) || !existsSync(dev)) {
-    return [`${!existsSync(prod) ? PROD_CHANNEL : DEV_CHANNEL}/ is missing — cannot compare`];
+  // 🔴 SLUGS MUST DIFFER, and each must equal its own directory name. Equal
+  // slugs would make the two channels the same add-on — installing one would
+  // replace the other and inherit its /data. Slug is immutable once shipped, so
+  // this is the one field where a mistake cannot be corrected later.
+  if (cfgSlug(pt) === cfgSlug(dt)) {
+    problems.push(`both channels declare slug "${cfgSlug(pt)}" — they would be the same add-on`);
   }
+  if (cfgSlug(pt) !== PROD_CHANNEL) problems.push(`${PROD_CHANNEL}/config.yaml declares slug "${cfgSlug(pt)}", not "${PROD_CHANNEL}"`);
+  if (cfgSlug(dt) !== DEV_CHANNEL) problems.push(`${DEV_CHANNEL}/config.yaml declares slug "${cfgSlug(dt)}", not "${DEV_CHANNEL}"`);
+
+  // The discovery service is a WIRE value shared with the vendored integration,
+  // which is byte-identical in both channels — so a channel declaring a
+  // different one is declaring a service its own integration does not provide.
+  // Supervisor 403s that, repeating every worker cycle (observed on a fresh box).
+  const [pd, dd] = [cfgDiscovery(pt), cfgDiscovery(dt)];
+  if (pd.join(',') !== dd.join(',')) {
+    problems.push(`discovery services disagree: ${PROD_CHANNEL}=[${pd}] ${DEV_CHANNEL}=[${dd}] — both vendor the SAME integration`);
+  }
+
+  // Versions may differ — that is the model, not a defect: dev cuts a build and
+  // a prod release is a PROMOTION of one. What must never happen is dev falling
+  // BEHIND prod, which would mean shipping to users something the dev channel
+  // never ran. This is the one direction that stays a hard failure, and it is
+  // the reason the version check belongs in the continuous set rather than in
+  // the promotion set with the rest of the comparison.
+  if (cmpVersion(cfgVersion(dt), cfgVersion(pt)) < 0) {
+    problems.push(`${DEV_CHANNEL} is v${cfgVersion(dt)} but ${PROD_CHANNEL} is v${cfgVersion(pt)} — prod would ship a build dev never ran`);
+  }
+
+  return problems;
+}
+
+/**
+ * THE PROMOTION SET — the byte sweep. TRUE AT EXACTLY ONE INSTANT: when prod
+ * has just been rebuilt from the dev release it claims to promote.
+ *
+ * ⚠️ Do NOT wire this into a continuous gate. Between promotions the prod
+ * directory legitimately leads the dev directory in content, and asserting this
+ * continuously means a gate that fails on a correct tree — which is how it was
+ * wired before 2026-08-04 and what made leg 7 red on the pushed repo at
+ * `35ed5da` while nothing whatsoever was wrong.
+ *
+ * Its caller is `promote-prod.sh`'s promotion proof, which is the same place
+ * `dashie-ha-console/scripts/release.sh` asserts the identical property.
+ */
+export function compareChannelContent(root = repoRoot) {
+  const missing = bothPresent(root);
+  if (missing) return [missing];
+
+  const prod = path.join(root, PROD_CHANNEL);
+  const dev = path.join(root, DEV_CHANNEL);
+  const problems = [];
 
   const inProd = new Set(listFiles(prod));
   const inDev = new Set(listFiles(dev));
@@ -100,53 +244,50 @@ export function compareChannels(root = repoRoot) {
     if (!a.equals(b)) problems.push(`differs: ${f}`);
   }
 
-  // The exempted file still has properties that must hold. Exempt from
-  // byte-identity is not exempt from every check — the four wires that once
-  // broke a box were all values two files had to agree on.
-  const cfg = (dir) => (existsSync(path.join(dir, 'config.yaml')) ? readFileSync(path.join(dir, 'config.yaml'), 'utf8') : '');
-  const slug = (t) => (t.match(/^slug:\s*(\S+)/m) || [])[1] ?? null;
-  const version = (t) => (t.match(/^version:\s*"?([^"\s]+)"?/m) || [])[1] ?? null;
-  const discovery = (t) => {
-    const m = t.match(/^discovery:\s*\n((?:\s*-\s*\S+\n)+)/m);
-    return m ? m[1].split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean).sort() : [];
-  };
-  const [pt, dt] = [cfg(prod), cfg(dev)];
-
-  // 🔴 SLUGS MUST DIFFER, and each must equal its own directory name. Equal
-  // slugs would make the two channels the same add-on — installing one would
-  // replace the other and inherit its /data. Slug is immutable once shipped, so
-  // this is the one field where a mistake cannot be corrected later.
-  if (slug(pt) === slug(dt)) {
-    problems.push(`both channels declare slug "${slug(pt)}" — they would be the same add-on`);
-  }
-  if (slug(pt) !== PROD_CHANNEL) problems.push(`${PROD_CHANNEL}/config.yaml declares slug "${slug(pt)}", not "${PROD_CHANNEL}"`);
-  if (slug(dt) !== DEV_CHANNEL) problems.push(`${DEV_CHANNEL}/config.yaml declares slug "${slug(dt)}", not "${DEV_CHANNEL}"`);
-
-  // The discovery service is a WIRE value shared with the vendored integration,
-  // which is byte-identical in both channels — so a channel declaring a
-  // different one is declaring a service its own integration does not provide.
-  // Supervisor 403s that, repeating every worker cycle (observed on a fresh box).
-  const [pd, dd] = [discovery(pt), discovery(dt)];
-  if (pd.join(',') !== dd.join(',')) {
-    problems.push(`discovery services disagree: ${PROD_CHANNEL}=[${pd}] ${DEV_CHANNEL}=[${dd}] — both vendor the SAME integration`);
-  }
-
-  // Versions may differ — that is the model, not a defect: dev runs a build
-  // first and a prod release is a promotion of it. What must never happen is
-  // dev falling BEHIND prod, which would mean shipping to users something the
-  // dev channel never ran.
-  const cmp = (a, b) => {
-    const [x, y] = [a, b].map((v) => (v ?? '0').split('.').map((n) => parseInt(n, 10) || 0));
-    for (let i = 0; i < Math.max(x.length, y.length); i++) {
-      if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
-    }
-    return 0;
-  };
-  if (cmp(version(dt), version(pt)) < 0) {
-    problems.push(`${DEV_CHANNEL} is v${version(dt)} but ${PROD_CHANNEL} is v${version(pt)} — prod would ship a build dev never ran`);
-  }
-
   return problems;
+}
+
+/**
+ * Report-only: how far the dev channel leads prod, **measured in VERSION** and
+ * never in files (B's finding 4). A file count would answer a different
+ * question than the one the phrase asks, and would go up merely because
+ * authoring continued.
+ *
+ * Returns `null` when the versions are equal or unreadable — i.e. when there is
+ * nothing to report — so the caller does not have to decide what "leading by
+ * zero" should print.
+ */
+export function channelVersionDelta(root = repoRoot) {
+  const prod = cfgVersion(readCfg(path.join(root, PROD_CHANNEL)));
+  const dev = cfgVersion(readCfg(path.join(root, DEV_CHANNEL)));
+  if (!prod || !dev) return null;
+  const c = cmpVersion(dev, prod);
+  if (c === 0) return null;
+  const [dp, pp] = [dev, prod].map((v) => v.split('.').map((n) => parseInt(n, 10) || 0));
+  const samePrefix = dp[0] === pp[0] && dp[1] === pp[1];
+  return {
+    prod,
+    dev,
+    devLeads: c > 0,
+    // Only claim a patch count when the majors and minors match; across a minor
+    // bump "by N patches" would be arithmetic on incomparable things.
+    patches: samePrefix ? Math.abs((dp[2] ?? 0) - (pp[2] ?? 0)) : null,
+    text: c > 0
+      ? `dev v${dev} leads prod v${prod}${samePrefix ? ` by ${Math.abs((dp[2] ?? 0) - (pp[2] ?? 0))} patch(es)` : ''} — unpromoted, which is the model`
+      : `dev v${dev} is BEHIND prod v${prod}`,
+  };
+}
+
+/**
+ * The union — wires AND content. This is the right question in exactly one
+ * place: immediately after `mirror()` writes, where both halves genuinely hold.
+ * A continuous gate wants `compareChannelWires` and a promotion wants
+ * `compareChannelContent`; reach for this only when you mean both.
+ */
+export function compareChannels(root = repoRoot) {
+  const missing = bothPresent(root);
+  if (missing) return [missing];
+  return [...compareChannelContent(root), ...compareChannelWires(root)];
 }
 
 /** Mirror prod → dev, preserving the per-channel files. */
@@ -192,12 +333,38 @@ function mirror() {
 
 // Only act when run directly; verify-channels.mjs imports the comparison.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.includes('--check')) {
-    const problems = compareChannels();
-    for (const p of problems) console.log(`❌ ${p}`);
-    console.log(problems.length ? `\n${problems.length} mirror problem(s)` : '✅ the dev channel mirrors the prod channel');
-    process.exit(problems.length ? 1 : 0);
-  } else {
+  // Each mode names WHICH question it answered in its own output. A check that
+  // prints "✅" without saying what it looked at is how "residue 0" came to mean
+  // "zero the pattern could see" three times in this repo's history.
+  const mode =
+    process.argv.includes('--check-wires') ? 'wires'
+    : process.argv.includes('--check-content') ? 'content'
+    : process.argv.includes('--check') ? 'both'
+    : 'mirror';
+
+  if (mode === 'mirror') {
     mirror();
+  } else {
+    const run = { wires: compareChannelWires, content: compareChannelContent, both: compareChannels }[mode];
+    const label = {
+      wires: 'the channel WIRES agree (slugs distinct, discovery equal, dev ≥ prod version)',
+      content: 'the two channel trees are byte-identical except ' + PER_CHANNEL_FILES.join(', '),
+      both: 'the dev channel mirrors the prod channel (wires AND content)',
+    }[mode];
+    const problems = run();
+    for (const p of problems) console.log(`❌ ${p}`);
+    if (problems.length) {
+      console.log(`\n${problems.length} problem(s) — checked: ${label}`);
+    } else {
+      console.log(`✅ ${label}`);
+      // Content equality is a promotion-instant property, so a bare green from
+      // --check-content invites the reading "and therefore the channels are in
+      // step". Say what it does not mean, at the one moment someone is reading.
+      if (mode === 'content') {
+        const d = channelVersionDelta();
+        if (d) console.log(`   (${d.text} — content equality says nothing about versions)`);
+      }
+    }
+    process.exit(problems.length ? 1 : 0);
   }
 }

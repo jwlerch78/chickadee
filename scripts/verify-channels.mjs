@@ -29,7 +29,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compareChannels, PER_CHANNEL_FILES, PROD_CHANNEL, DEV_CHANNEL } from './mirror-dev-channel.mjs';
+import { compareChannelWires, channelVersionDelta, PROD_CHANNEL, DEV_CHANNEL } from './mirror-dev-channel.mjs';
 
 // ── --repo-root: point the statics at ANOTHER repo's channels ────────────────
 //
@@ -357,7 +357,7 @@ print("\\n".join(bad))`;
   record(ch, 'vendored integration', ok, detail);
 }
 
-// 7. 🔴 THE DEV CHANNEL MIRRORS THE PROD CHANNEL.
+// 7. 🔴 THE TWO CHANNELS' WIRES AGREE.
 //
 //    Cross-channel, so it runs once rather than per channel — and only when both
 //    are in scope, because the property is meaningless about one directory. A
@@ -372,20 +372,57 @@ print("\\n".join(bad))`;
 //    "Both channels presumably, same generation" appears in three fresh-box blocker
 //    reports; nothing ever verified it.
 //
-//    The exemption list lives in mirror-dev-channel.mjs and is imported, not
+// ── ⚠️ WHAT THIS LEG NO LONGER ASSERTS, AND WHY (2026-08-04) ──────────────────
+//
+//    Until today this leg asserted the channels were byte-identical except for
+//    PER_CHANNEL_FILES. Under the dev/prod PROMOTION SPLIT that John ordered
+//    (matching `dashie-ha-console`'s model), **that assertion is false on a
+//    correct tree**: `chickadee/` is the generated tree AND the prod channel, so
+//    it moves forward with every regeneration, while `chickadee_dev/` is the
+//    frozen record of the last dev release. Prod's DIRECTORY leading dev's in
+//    CONTENT is now the designed state, not drift.
+//
+//    Observed, not predicted: commit `35ed5da` regenerated `chickadee/` with
+//    John's audit-#2 "Devices" nav label, and this leg went RED on a repo where
+//    nothing at all was wrong.
+//
+//    THE NEW INVARIANT, in one line:
+//
+//        continuously:  the WIRES agree and dev ≥ prod in VERSION
+//        at a promotion only:  the CONTENT is identical
+//
+//    So the byte sweep did not get deleted — it MOVED, to `promote-prod.sh`'s
+//    promotion proof, which asserts it at the one instant it is true. That is
+//    where `dashie-ha-console/scripts/release.sh` asserts the same property, and
+//    "matches dashie" was the spec. Content drift is therefore not unguarded;
+//    it is guarded at the gate that can tell drift from progress.
+//
+//    The wire list lives in mirror-dev-channel.mjs and is imported, not
 //    restated. That script both WRITES the mirror and defines what may differ,
 //    so this cannot check a rule the copier does not follow.
 if (rootFlag >= 0) {
-  record('both channels', 'dev mirrors prod', true,
+  record('both channels', 'channel wires agree', true,
     '⏭️ skipped — this repo has its own mirror, with its own canonical direction');
 } else if (channels.includes(PROD_CHANNEL) && channels.includes(DEV_CHANNEL)) {
-  const problems = compareChannels(repoRoot);
-  record('both channels', 'dev mirrors prod', !problems.length,
+  const problems = compareChannelWires(repoRoot);
+  record('both channels', 'channel wires agree', !problems.length,
     problems.length
       ? `${problems.length}: ${problems.slice(0, 4).join(' · ')}`
-      : `identical except ${PER_CHANNEL_FILES.join(', ')}; slugs distinct, discovery agrees`);
+      : 'slugs distinct, discovery equal, dev ≥ prod version');
+
+  // Report-only, never a failure: how far dev leads prod. A stale prod channel
+  // is worth SEEING without being a red gate — between promotions it is the
+  // correct state, and the whole point of the split is that this line can say
+  // "unpromoted" instead of the gate saying "broken".
+  //
+  // 🔴 Measured in VERSION, never in files (B's finding 4). A file count would
+  // climb merely because authoring continued, and would answer a question
+  // nobody asked while looking like it answered this one.
+  const delta = channelVersionDelta(repoRoot);
+  record('both channels', 'promotion distance', true,
+    delta ? `ℹ️ ${delta.text}` : 'ℹ️ both channels at the same version — prod is current with dev');
 } else {
-  record('both channels', 'dev mirrors prod', true,
+  record('both channels', 'channel wires agree', true,
     `⏭️ not checked — needs both ${PROD_CHANNEL} and ${DEV_CHANNEL} in scope`);
 }
 
