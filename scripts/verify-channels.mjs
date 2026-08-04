@@ -29,7 +29,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compareChannelWires, channelVersionDelta, PROD_CHANNEL, DEV_CHANNEL } from './mirror-dev-channel.mjs';
+import { compareChannelWires, compareChannelContent, channelVersionDelta, PROD_CHANNEL, DEV_CHANNEL } from './mirror-dev-channel.mjs';
 
 // ── --repo-root: point the statics at ANOTHER repo's channels ────────────────
 //
@@ -415,12 +415,33 @@ if (rootFlag >= 0) {
   // correct state, and the whole point of the split is that this line can say
   // "unpromoted" instead of the gate saying "broken".
   //
-  // 🔴 Measured in VERSION, never in files (B's finding 4). A file count would
-  // climb merely because authoring continued, and would answer a question
-  // nobody asked while looking like it answered this one.
+  // 🔴 The DISTANCE is measured in VERSION, never in files (B's finding 4). A
+  // file count would climb merely because authoring continued, and would answer
+  // a question nobody asked while looking like it answered this one.
+  //
+  // ── ⚠️ AND THE SECOND HALF, WHICH EXISTS BECAUSE THE SPLIT REMOVED A SIGNAL ──
+  //
+  //    Before the split, leg 7's byte sweep caught one specific real defect:
+  //    **brandgen writes the PROD channel only, and the mirror is a SEPARATE
+  //    command**, so a regen run without it left the dev channel on old content
+  //    — observed live at `35ed5da` and written up in BRAND_SYNC_CONTRACT.md.
+  //
+  //    Under the split that state is LEGAL (prod's directory leads dev's between
+  //    promotions), so it can no longer be a failure. But "legal" is not the same
+  //    as "should be invisible", and silently dropping a signal that had already
+  //    caught a real defect is exactly the trade this repo keeps regretting.
+  //
+  //    So the content comparison still RUNS — it just reports instead of failing.
+  //    A reader can now see "there is authored work here that no dev cut has
+  //    released yet", which is the true statement; the old gate said "broken",
+  //    which was not.
   const delta = channelVersionDelta(repoRoot);
-  record('both channels', 'promotion distance', true,
-    delta ? `ℹ️ ${delta.text}` : 'ℹ️ both channels at the same version — prod is current with dev');
+  const contentDiff = compareChannelContent(repoRoot);
+  const versionPart = delta ? delta.text : 'both channels at the same version';
+  const contentPart = contentDiff.length
+    ? `${contentDiff.length} file(s) in ${PROD_CHANNEL}/ differ from the last dev release — authored, not yet dev-cut`
+    : `${PROD_CHANNEL}/ content matches the last dev release`;
+  record('both channels', 'promotion distance', true, `ℹ️ ${versionPart}; ${contentPart}`);
 } else {
   record('both channels', 'channel wires agree', true,
     `⏭️ not checked — needs both ${PROD_CHANNEL} and ${DEV_CHANNEL} in scope`);
