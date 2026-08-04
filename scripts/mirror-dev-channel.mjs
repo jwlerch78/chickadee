@@ -57,7 +57,7 @@
 // now" is still the right question immediately after `mirror()` runs, where
 // both halves genuinely do hold.
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync, cpSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync, cpSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -332,7 +332,24 @@ function mirror() {
 }
 
 // Only act when run directly; verify-channels.mjs imports the comparison.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+//
+// 🔴 REALPATH BOTH SIDES. `import.meta.url` is already symlink-resolved; `process.argv[1]`
+// is not. So on any path containing a symlink — `/tmp` and `/var/folders/…` on macOS are
+// symlinks to `/private/…`, which is where every fixture and CI scratch dir lives — the two
+// strings differ, this guard is FALSE, and the script **does nothing and exits 0**.
+//
+// That is the worst possible failure shape and it is not hypothetical: it silently no-opped
+// a promotion proof during the 2026-08-04 control run, which reported "✅ prod tree is
+// byte-identical to the tested dev build" about a tree that demonstrably differed. A mirror
+// step that quietly does not mirror, and a check that quietly checks nothing, both look
+// exactly like success. Found only because a control was driven in the failing colour.
+const invokedDirectly = (() => {
+  if (!process.argv[1]) return false;
+  const real = (p) => { try { return realpathSync(p); } catch { return path.resolve(p); } };
+  return real(process.argv[1]) === real(fileURLToPath(import.meta.url));
+})();
+
+if (invokedDirectly) {
   // Each mode names WHICH question it answered in its own output. A check that
   // prints "✅" without saying what it looked at is how "residue 0" came to mean
   // "zero the pattern could see" three times in this repo's history.
