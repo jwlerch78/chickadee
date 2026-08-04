@@ -7,6 +7,20 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.17
+
+- Speech-to-text is counted on your box too, and the add-on logo is the corrected artwork
+- Bring your own speech provider, personalities without an account, and a wake word that matches the box
+- --force applies the same zero-case rule as the refusal
+- mirror() refuses outside a dev cut — the command whose MEANING changed while the command did not
+- promotion distance also reports CONTENT — the split must not silently drop a signal
+- Fix a SILENT no-op: realpath both sides of the run-directly guard
+- Split the channel comparison by QUESTION: wires continuously, content at promotions
+- Mirror chickadee/ -> chickadee_dev/ — the #2 Devices label; the regen writes prod only, the mirror is the second half
+- Regenerate from dashie-ha @ 491f3bf — Devices nav label (audit #2) + the bundle/.meta.json pre-commit pair
+- Thread B: pre-commit allows the brain bundle's .meta.json sidecar — one command writes the pair, so refusing either refused the command
+- Thread B: pin absWorkingDir in build-brain — the bundle's bytes, and --check's verdict, depended on the operator's cwd
+
 ## 0.1.16
 
 - Regenerate: the preset cards lose the sign-in and credits vocabulary
