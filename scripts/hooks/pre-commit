@@ -21,6 +21,16 @@
 #
 #   voice-brain.bundle.js — esbuild output from the channel's own server/brain/src/.
 #                  Edit the source and rebuild; never touch the bundle.
+#   voice-brain.bundle.meta.json — its SIDECAR, written by the same command in the
+#                  same breath, and REQUIRED at boot (server/index.js requires it;
+#                  a bundle without its twin is a container that exits(1)).
+#
+# 🔴 The pair is allowed as a PAIR, deliberately. Until 2026-08-04 only the .js was
+# listed, so `node scripts/build-brain.mjs` produced two files and this hook refused
+# one of them — the operator's only route was the BRAND_GEN=1 escape hatch, which
+# disables every other check in this file to commit a file that was never in
+# question. An exemption you must over-broadly disarm the guard to use is a guard
+# that trains people to disarm it. (S's 1.1.0 execution run, s14.)
 #
 # The generator preserves all of these across a regeneration (they are on its
 # `exclude` list, and exclude means not-to-write AND not-to-delete). This hook
@@ -45,15 +55,17 @@ for f in "${STAGED[@]}"; do
     case "$f" in
         # Hand-authored: always allowed.
         */config.yaml|*/DOCS.md|*/CHANGELOG.md) ;;
-        # Built artifact: allowed, but say how it is actually produced.
-        */voice-brain.bundle.js) BUNDLE+=("$f") ;;
+        # Built artifact + its required sidecar: allowed as a pair, but say how
+        # they are actually produced. One command writes both; refusing either
+        # refuses the command.
+        */voice-brain.bundle.js|*/voice-brain.bundle.meta.json) BUNDLE+=("$f") ;;
         custom_components/*|chickadee/*|chickadee_dev/*) OFFENDING+=("$f") ;;
     esac
 done
 
 if [[ ${#BUNDLE[@]} -gt 0 && ${#OFFENDING[@]} -eq 0 ]]; then
-    echo "pre-commit: note — the brain bundle is BUILT output." >&2
-    echo "            A hand-edit to it dies at the next build, silently." >&2
+    echo "pre-commit: note — the brain bundle and its .meta.json sidecar are BUILT output." >&2
+    echo "            A hand-edit to either dies at the next build, silently." >&2
     echo "            Verify with: node scripts/build-brain.mjs --check" >&2
 fi
 
