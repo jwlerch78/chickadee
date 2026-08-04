@@ -14,7 +14,8 @@
 // list this file mirrors with. One definition, used to write and to check —
 // a mirror that drifts from its checker is the failure being prevented.
 //
-// Usage:  node scripts/mirror-dev-channel.mjs                 (mirror prod → dev)
+// Usage:  node scripts/mirror-dev-channel.mjs                 (mirror — REFUSES outside a dev cut)
+//         node scripts/mirror-dev-channel.mjs --force         (…overwrite the record anyway, loudly)
 //         node scripts/mirror-dev-channel.mjs --check         (wires + content)
 //         node scripts/mirror-dev-channel.mjs --check-wires   (the continuous set)
 //         node scripts/mirror-dev-channel.mjs --check-content (the promotion set)
@@ -290,13 +291,78 @@ export function compareChannels(root = repoRoot) {
   return [...compareChannelContent(root), ...compareChannelWires(root)];
 }
 
-/** Mirror prod → dev, preserving the per-channel files. */
-function mirror() {
+/**
+ * Mirror prod → dev, preserving the per-channel files.
+ *
+ * ── 🔴 REFUSES UNLESS IT IS PART OF A DEV CUT (2026-08-04, B's finding) ──────
+ *
+ * This command's MEANING changed under the promotion split while the command
+ * itself did not, which is the whole hazard and worth stating plainly.
+ *
+ *   BEFORE  `chickadee_dev/` was a mirror that should always match prod, so
+ *           re-running this was harmless housekeeping — idempotent, always
+ *           correct, run it whenever you like.
+ *   NOW     `chickadee_dev/` is the **frozen record of the last dev release** —
+ *           the tree a box actually ran, and the reference `promote-prod.sh`
+ *           verifies a promotion against. Running this outside a cut
+ *           **overwrites that record with never-released content**, silently,
+ *           and the promotion proof then passes against the wrong reference.
+ *
+ * B ran exactly this at `14fd28b` — correctly under the old semantics, with the
+ * same keystrokes, after the meaning had moved underneath it. No gate saw it,
+ * because there was nothing left to compare against: the evidence is what the
+ * command destroys.
+ *
+ * So the legitimate caller must SAY it is cutting a dev release
+ * (`build-addons.sh` sets `DASHIE_DEV_CUT=1` in step 1d), or a human must pass
+ * `--force` and read what it names. This is the provenance half of finding 3 —
+ * the `PER_CHANNEL_FILES` throw guards the dev channel's IDENTITY, and this
+ * guards its PROVENANCE.
+ */
+function mirror({ force = false } = {}) {
   const prod = path.join(repoRoot, PROD_CHANNEL);
   const dev = path.join(repoRoot, DEV_CHANNEL);
   if (!existsSync(prod)) {
     console.error(`mirror-dev-channel: ${PROD_CHANNEL}/ not found`);
     process.exit(2);
+  }
+
+  // Name the record BEFORE deciding, so both the refusal and the --force path
+  // state which release is at stake rather than leaving it to be inferred.
+  const recordVersion = cfgVersion(readCfg(dev)) ?? 'unknown';
+  const prodVersion = cfgVersion(readCfg(prod)) ?? 'unknown';
+  const pending = compareChannelContent(repoRoot);
+  const cutting = process.env.DASHIE_DEV_CUT === '1';
+
+  if (!cutting && !force) {
+    console.error(`mirror-dev-channel: ❌ refusing — this is not a dev cut.`);
+    console.error(``);
+    console.error(`  ${DEV_CHANNEL}/ is the FROZEN RECORD of dev release v${recordVersion} — what a box`);
+    console.error(`  actually ran, and what promote-prod.sh verifies a promotion against.`);
+    console.error(``);
+    // Say what THIS run would actually cost, rather than a generic warning. With nothing
+    // pending the honest answer is "nothing" — claiming otherwise trains people to skip
+    // the message, and then it is not there when it matters.
+    if (pending.length === 0) {
+      console.error(`  Right now it would change NOTHING — ${PROD_CHANNEL}/ (v${prodVersion}) is already`);
+      console.error(`  identical to the record. The refusal still stands, because the next run`);
+      console.error(`  after a regeneration would NOT be harmless, and that is the run nobody`);
+      console.error(`  notices is different.`);
+    } else {
+      console.error(`  It would overwrite that record with the current ${PROD_CHANNEL}/ content`);
+      console.error(`  (v${prodVersion}), which no box has run — ${pending.length} file(s) differ. The`);
+      console.error(`  promotion proof would then pass against a reference never released.`);
+    }
+    console.error(``);
+    console.error(`  To CUT A DEV RELEASE (the normal path):  scripts/build-addons.sh`);
+    console.error(`  To overwrite the record anyway:          --force`);
+    process.exit(1);
+  }
+
+  if (force && !cutting) {
+    console.log(`⚠️  --force: overwriting the record of dev release v${recordVersion} with`);
+    console.log(`   ${PROD_CHANNEL}/ v${prodVersion} (${pending.length} file(s) differ), outside a dev cut.`);
+    console.log(`   After this, no box has run what ${DEV_CHANNEL}/ claims to record.`);
   }
 
   // Preserve before replace, for the reason brand-gen learned the hard way: the
@@ -360,7 +426,7 @@ if (invokedDirectly) {
     : 'mirror';
 
   if (mode === 'mirror') {
-    mirror();
+    mirror({ force: process.argv.includes('--force') });
   } else {
     const run = { wires: compareChannelWires, content: compareChannelContent, both: compareChannels }[mode];
     const label = {
