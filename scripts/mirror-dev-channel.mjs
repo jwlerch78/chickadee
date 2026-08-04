@@ -360,9 +360,21 @@ function mirror({ force = false } = {}) {
   }
 
   if (force && !cutting) {
-    console.log(`⚠️  --force: overwriting the record of dev release v${recordVersion} with`);
-    console.log(`   ${PROD_CHANNEL}/ v${prodVersion} (${pending.length} file(s) differ), outside a dev cut.`);
-    console.log(`   After this, no box has run what ${DEV_CHANNEL}/ claims to record.`);
+    // Same zero-case rule the refusal above applies, and for the same reason: a
+    // warning that overstates on the harmless run is the warning nobody reads on
+    // the run that matters. With nothing pending, "no box has run what the record
+    // claims" is simply FALSE — the bytes do not change and the record still
+    // describes the release it described a moment ago. (B's find, addendum 73;
+    // it was my own commit message's standard and I applied it to one branch.)
+    if (pending.length === 0) {
+      console.log(`⚠️  --force outside a dev cut — but ${DEV_CHANNEL}/ is already identical to`);
+      console.log(`   ${PROD_CHANNEL}/ v${prodVersion}, so this rewrites the same bytes and changes nothing.`);
+      console.log(`   The record still describes dev release v${recordVersion}.`);
+    } else {
+      console.log(`⚠️  --force: overwriting the record of dev release v${recordVersion} with`);
+      console.log(`   ${PROD_CHANNEL}/ v${prodVersion} (${pending.length} file(s) differ), outside a dev cut.`);
+      console.log(`   After this, no box has run what ${DEV_CHANNEL}/ claims to record.`);
+    }
   }
 
   // Preserve before replace, for the reason brand-gen learned the hard way: the
