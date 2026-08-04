@@ -71,8 +71,23 @@ fi
 
 [[ ${#OFFENDING[@]} -eq 0 ]] && exit 0
 
+# 🔴 `|| true` IS LOAD-BEARING — without it this hook REFUSES SILENTLY (B, 2026-08-04).
+#
+# The two globs are alternatives: an integration repo has `custom_components/*/GENERATED`,
+# the chickadee repo has `chickadee/GENERATED`. Whichever repo you are in, ONE of them
+# matches nothing — and with `nullglob` off, bash hands the unmatched pattern to `sed` as a
+# literal filename. `sed` cannot open it, exits 2, and `set -e` + `pipefail` kill the hook
+# **on this line** — three lines before the explanation it exists to print.
+#
+# So the hook did exactly the wrong thing in the wrong way: it still refused the commit
+# (non-zero), but said NOTHING about why. A silent refusal is worse than no hook — the
+# committer sees a bare failure and has no idea a generated tree is involved, which is the
+# one fact this hook exists to tell them. Standing rule 2: every drop is loud.
+#
+# SOURCE is only a hint in the message, so failing to resolve it must never be fatal. `sed`
+# still reads whichever file DOES exist, so the hint is populated correctly either way.
 SOURCE="$(sed -n 's/^Generated from \([^ ]*\) @.*/\1/p' \
-    custom_components/*/GENERATED chickadee/GENERATED 2>/dev/null | head -1)"
+    custom_components/*/GENERATED chickadee/GENERATED 2>/dev/null | head -1 || true)"
 
 echo "" >&2
 echo "pre-commit: ❌ refusing — these files are GENERATED and the next" >&2
