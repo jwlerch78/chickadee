@@ -7,6 +7,11 @@ Chickadee starts its own history here. The add-on shares a codebase with Dashie
 and most of this tree is generated from it, but Dashie's release history is not
 Chickadee's — see `PROVENANCE.md` in the repository for the relationship.
 
+## 0.1.18
+
+- A box with no account stops offering what an account is for, and Remove finally removes
+- A pre-commit hook that explains itself
+
 ## 0.1.17
 
 - Speech-to-text is counted on your box too, and the add-on logo is the corrected artwork

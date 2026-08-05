@@ -5,7 +5,7 @@
    Built from this channel's OWN server/brain/src/ — not copied, and not
    text-substituted from another brand's bundle. See scripts/build-brain.mjs
    for why that distinction matters.
-   Built from: dashie-ha-console @ 89ee19d
+   Built from: dashie-ha-console @ 306e277
    Regenerate:  node scripts/build-brain.mjs
    ============================================================ */
 var __defProp = Object.defineProperty;
@@ -4451,4 +4451,4 @@ function toolMeta(parsed, route, caps) {
   templateCanAnswer,
   wantsGameDetail
 });
-module.exports.BRAIN_SOURCE_SHA = "89ee19d";
+module.exports.BRAIN_SOURCE_SHA = "306e277";
